@@ -1,0 +1,20 @@
+{
+  "name": "erp-diplo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ERP multiempresa modular (React Native + RN Web / Node.js + Express / MongoDB Atlas)",
+  "scripts": {
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend start",
+    "web:frontend": "npm --prefix frontend run web",
+    "web:build": "npm --prefix frontend run export:web",
+    "seed": "npm --prefix backend run seed",
+    "indexes": "npm --prefix backend run indexes",
+    "test": "npm --prefix backend test",
+    "test:unit": "npm --prefix backend run test:unit",
+    "test:integration": "npm --prefix backend run test:integration"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

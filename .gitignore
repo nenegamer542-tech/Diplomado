@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Environment / secrets
+.env
+.env.local
+.env.*.local
+atlas-credentials.env
+
+# Build
+dist/
+build/
+web-build/
+.expo/
+*.log
+
+# Tests / coverage
+coverage/
+.nyc_output/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Native
+mobile-native/android/.gradle/
+mobile-native/android/app/build/
+*.apk
+*.aab

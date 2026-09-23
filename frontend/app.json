@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "ERP Multiempresa",
+    "slug": "erp-multiempresa",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#0f172a"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.diplo.erp"
+    },
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}
