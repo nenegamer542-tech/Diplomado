@@ -220,9 +220,15 @@ describeIfDb('Multiempresa + permisos (integración)', () => {
     expect(del.status).toBe(409);
   });
 
-  test('rol en uso por usuarios no se elimina', async () => {
+  test('rol personalizado en uso por usuarios no se elimina', async () => {
+    const roleRes = await request(app)
+      .post('/api/v1/roles')
+      .set(auth(tokenA))
+      .send({ code: 'qa_role', label: 'QA Role', permissions: ['sales.orders.read'] });
+    expect(roleRes.status).toBe(201);
+    await createUser({ company: A.company, role: roleRes.body.data, email: 'qa-role@alfa.local' });
     const res = await request(app)
-      .delete(`/api/v1/roles/${A.roles.ventas._id}`)
+      .delete(`/api/v1/roles/${roleRes.body.data._id}`)
       .set(auth(tokenA));
     expect(res.status).toBe(409);
     expect(res.body.error.message).toContain('usuario');

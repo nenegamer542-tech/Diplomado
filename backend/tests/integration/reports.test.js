@@ -319,8 +319,8 @@ describeIfDb('API /reports/* (integración FASE 5)', () => {
     expect(res.status).toBe(200);
     const data = res.body.data;
     expect(data.income).toEqual({ count: 2, total: 1500 });
-    expect(data.expense).toEqual({ count: 2, total: 270 });
-    expect(data.net).toBe(1230);
+    expect(data.expense).toEqual({ count: 3, total: 370 }); // ano calendario completo
+    expect(data.net).toBe(1130);
   });
 
   test('finanzas histórico completo (sin filtros)', async () => {

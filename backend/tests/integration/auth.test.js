@@ -79,7 +79,7 @@ describeIfDb('API /auth (integración)', () => {
   });
 
   test('body inválido → 422 y campo faltante detallado', async () => {
-    const res = await request(app).post('/api/v1/auth/login').send({ email: 'x@y.z' });
+    const res = await request(app).post('/api/v1/auth/login').send({ email: 'x@example.com' });
     expect(res.status).toBe(422);
     expect(res.body.error.message).toBe('Los datos enviados no son válidos.');
     expect(res.body.error.details.body[0].field).toBe('password');

@@ -76,3 +76,6 @@ Formato: [Keep a Changelog](https://keepachangelog.com/). Todo cambio relevante 
 - **Migración FASE 5**: el rol `finanzas` de empresas ya sembradas no tiene los permisos nuevos (`finance.income.void`, `finance.expenses.void`, `finance.accounts.create/update/delete`, `finance.budgets.create/delete`). Actualizar el arreglo `permissions` del rol en BD o recrear la empresa demo.
 - **Migración FASE 6**: si una empresa se sembró antes de incorporar los grupos `crm.*`/`hr.*`/`production.*` al catálogo, sus roles (incluido `administrador`, que se sembró con el catálogo vigente de ese momento) carecen de esos permisos. Refrescar los arreglos `permissions` de los roles en BD (usar `DEFAULT_ROLES` actual como fuente) o recrear la empresa demo.
 - El prompt maestro (43 secciones) debe guardarse en `docs/requirements/` desde la conversación original.
+
+## Security audit - 2026-09-23
+- `.env.example` contained a MongoDB URI with apparent credentials and used `MONGODB_URI`, not the backend-required `MONGO_URI`. Removed credential assignments and added a placeholder URI with the correct name. QA: 18/18 unit suites (264 tests) and 9/9 integration suites (181 tests) passed; line coverage is 87.97% (above the 80% target). Atlas credential rotation and history cleanup decision remain pending.

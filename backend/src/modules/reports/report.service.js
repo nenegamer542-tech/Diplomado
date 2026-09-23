@@ -36,7 +36,10 @@ const reportService = {
       reportsRepository.expenseTotal(companyId, range),
       reportsRepository.counts(companyId),
     ]);
-    const approved = (rows) => rows.find((r) => r.status === 'APPROVED') || { count: 0, total: 0 };
+    const approved = (rows) => {
+      const row = rows.find((r) => r.status === 'APPROVED');
+      return row ? { count: row.count, total: row.total } : { count: 0, total: 0 };
+    };
 
     return {
       period: { from: range.from || null, to: range.to || null },

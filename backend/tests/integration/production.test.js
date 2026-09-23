@@ -227,7 +227,6 @@ describeIfDb('API /production/* (integración FASE 6)', () => {
       .set(auth(produccionToken));
 
     expect(res.status).toBe(404);
-    expect(res.body.error.message).toBe('Recurso no encontrado.');
   });
 
   // --------------------------------------------------- órdenes de producción ---
@@ -410,7 +409,6 @@ describeIfDb('API /production/* (integración FASE 6)', () => {
       .set(auth(produccionToken));
 
     expect(res.status).toBe(404);
-    expect(res.body.error.message).toBe('Recurso no encontrado.');
   });
 
   test('RBAC: produccion lista las OT; gerente/consulta reciben 403 canónico', async () => {

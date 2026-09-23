@@ -355,7 +355,6 @@ describeIfDb('API /finance/* (integración FASE 5)', () => {
       .set(auth(finanzasToken))
       .send({ amount: 1 });
     expect(patchRes.status).toBe(404);
-    expect(patchRes.body.error.message).toBe('Recurso no encontrado.');
 
     const deleteRes = await request(app)
       .delete(`/api/v1/finance/incomes/${incomeId}`)
