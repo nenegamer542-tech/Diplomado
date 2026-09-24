@@ -29,9 +29,9 @@ function signAccessToken(user) {
   );
 }
 
-function signRefreshToken(user) {
+function signRefreshToken(user, sessionId) {
   return jwt.sign(
-    { sub: user.id, tv: user.tokenVersion ?? 0 },
+    { sub: user.id, tv: user.tokenVersion ?? 0, jti: sessionId },
     env.jwt.refreshSecret,
     { expiresIn: env.jwt.refreshExpires, issuer: 'erp-backend' }
   );

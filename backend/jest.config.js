@@ -10,5 +10,7 @@ module.exports = {
   testMatch: ['<rootDir>/tests/**/*.test.js'],
   collectCoverageFrom: ['src/**/*.js', '!src/server.js', '!src/scripts/**/*.js'],
   verbose: true,
-  testTimeout: 15000,
+  // Las fixtures de integración crean muchos usuarios con bcrypt en Windows;
+  // 15s era insuficiente bajo carga aunque la suite pasara aislada.
+  testTimeout: 30000,
 };

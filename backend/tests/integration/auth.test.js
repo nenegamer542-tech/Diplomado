@@ -145,6 +145,12 @@ describeIfDb('API /auth (integración)', () => {
       .send({ refreshToken });
     expect(refreshed.status).toBe(200);
     expect(refreshed.body.data.accessToken).toBeDefined();
+    expect(refreshed.body.data.refreshToken).toBeDefined();
+
+    // El refresh consumido no puede volver a utilizarse.
+    const replay = await request(app).post('/api/v1/auth/refresh').send({ refreshToken });
+    expect(replay.status).toBe(401);
+    expect(replay.body.error.code).toBe('SESSION_REVOKED');
 
     const logout = await request(app).post('/api/v1/auth/logout').set(auth(accessToken));
     expect(logout.status).toBe(200);

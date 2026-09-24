@@ -1,9 +1,19 @@
 # Matriz de pruebas QA (FASE 2 + 3 + 4 + 5 + 6)
 
+## Seguimiento actual de FASE 1 (2026-09-24)
+
+| ID | Módulo | Proceso | Entrada | Resultado esperado | Resultado real | Estado |
+|---|---|---|---|---|---|---|
+| CORE-AUTH-ROTATE-01 | Auth/Sesiones | Rotar refresh y rechazar replay | Refresh válido y posterior repetición del mismo token | Primer uso emite par nuevo; repetición responde `SESSION_REVOKED` | Unitarias de servicio y suite API de auth aprobadas con MongoDB efímero | APROBADO |
+| CORE-SETTINGS-TENANT-01 | Core/Ajustes | Leer y modificar ajustes de empresa | Admin tenant A actualiza locale y periodo fiscal; usuario B consulta | Cambia sólo la empresa A; B mantiene valores por defecto; ventas recibe 403; campos ajenos 422; auditoría registra el cambio | Suite multiempresa aprobada con MongoDB efímero | APROBADO |
+
+En la última suite completa, 28 suites y 449 pruebas pasaron con MongoDB efímero; no se usó Atlas para QA.
+
 **Estado global (2026-09-24; suite completa con cobertura)**:
-- **Unitarias: APROBADO**: 18/18 suites y 264/264 pruebas aprobadas.
-- **API + integracion: APROBADO**: 9/9 suites, 181/181 pruebas aprobadas con mongodb-memory-server efimero.
-- **Cobertura total**: lineas 87.97% (2902/3299), supera el objetivo >=80%; ramas 40.37% (631/1563).
+- **Unitarias: APROBADO**: 19/19 suites y 267/267 pruebas aprobadas.
+- **API + integracion: APROBADO**: 9/9 suites, 182/182 pruebas aprobadas con mongodb-memory-server efimero.
+- **Total**: 28/28 suites y 449/449 pruebas aprobadas.
+- **Cobertura total**: lineas 88.09% (2945/3343), ramas 62.27% (992/1593).
 - **FASE 7 (frontend)**: `npm.cmd run export:web` en `frontend/` -> **exit 0, 240 modulos, bundle 496 kB**. Revision visual manual bloqueada: no hay navegador automatizable instalado. El barrido estatico previo valido imports y coherencia de pantallas.
 - Ejecución que detectó 5 defectos de backend (ya corregidos, ver `docs/CHANGELOG.md`): `tenantFilter` podía ser pisado por `extra.companyId`, `budgetService.create` pasaba campos no-clave a `findByKey`, `auditService` persistía `before: undefined`, `isDuplicateKeyError(null)` devolvía `null`, `parsePagination` trataba `limit='0'` como ausente.
 

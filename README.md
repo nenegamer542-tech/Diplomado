@@ -2,7 +2,7 @@
 
 ERP modular multiempresa: **React Native + React Native Web** (Expo) · **Node.js + Express** · **MongoDB Atlas** · roles nativos Android (Kotlin) sólo para funciones puntuales.
 
-> Estado actual: Fases 0-7 implementadas parcialmente en codigo. QA backend: unitarias e integracion APROBADO, 27/27 suites y 445/445 pruebas; cobertura de lineas 87.97%; export web APROBADO, 240 modulos. La inspeccion visual esta pendiente por falta de navegador. La Fase 0 sigue NO APROBADA hasta revocar la credencial expuesta historicamente en Atlas. Ver docs/architecture/current-state.md y docs/qa/matriz-pruebas.md.
+> Estado actual: Fases 0-7 implementadas parcialmente en código. QA backend: 28/28 suites y 449/449 pruebas aprobadas; cobertura de líneas 88.09%. La exportación web está aprobada; la inspección visual sigue pendiente por falta de navegador. La Fase 0 continúa NO APROBADA hasta revocar la credencial expuesta históricamente en Atlas. Ver docs/architecture/current-state.md y docs/qa/matriz-pruebas.md.
 
 ## Estructura
 
@@ -86,6 +86,8 @@ npm run test:integration
 ```
 
 ## Seguridad implementada (FASE 2)
+
+Las sesiones de refresh se persisten en `sessions`; cada refresh se consume una sola vez y se rechaza su reutilización. La validación de integración de esta protección está pendiente de una base MongoDB de pruebas descartable.
 
 - **Multiempresa**: `companyId` siempre sale del token; `BaseRepository` lanza si falta en cualquier query de negocio (ADR-004); rutas `:id` con `assertOwnership` → 404 entre tenants.
 - RBAC granular `products.*`, `warehouses.*`, `inventory.*` (FASE 3), `suppliers.*`, `customers.*`, `purchases.*`, `sales.orders.*` (FASE 4) y `finance.*` (dinero append-only con `.void`, cuentas y presupuestos) + `reports.read/export` (FASE 5) y `crm.*`, `hr.*`, `production.*` (FASE 6: grupos **sin `.delete`** — la baja es por estado, ADR-012); catálogo en código (ADR-002); anti-escalada: nadie otorga permisos que no posee.

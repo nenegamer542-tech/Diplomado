@@ -2,7 +2,12 @@
 
 Sufijo de base recomendado: `erp` (dev), `erp_test` (pruebas, descartable).
 
-## Colecciones (FASE 2 + 3 + 4 + 5 + 6)
+## Colecciones (FASE 1 + 2 + 3 + 4 + 5 + 6)
+
+### `sessions` (FASE 1)
+Sesiones de refresh con `userId`, `companyId`, `tokenVersion`, `refreshIdHash` (SHA-256; el token nunca se persiste), `expiresAt` y `consumedAt`. La rotación consume el registro atómicamente; hay índice TTL en `expiresAt` y búsqueda por usuario/consumo/expiración.
+
+`companies.settings` expone sólo `locale`, `dateFormat` y `fiscalYearStartMonth`; la API valida las claves y deriva la empresa exclusivamente del usuario autenticado.
 
 ### `companies` — tenant raíz (entidad de PLATAFORMA, sin `companyId`)
 Campos: `name` (único), `legalName`, `taxId` (único sparse), `email`, `phone`, `address`, `currency` (default `MXN`), `timezone`, `status: active|suspended`, `settings`, timestamps.

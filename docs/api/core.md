@@ -20,12 +20,13 @@ Autenticación: `Authorization: Bearer <accessToken>`.
 |---|---|---|---|
 | GET | `/health` | público | health check |
 | POST | `/auth/login` | público (rate limit estricto) | `{ email, password }` → `{ user, accessToken, refreshToken }` |
-| POST | `/auth/refresh` | público | `{ refreshToken }` → par nuevo |
+| POST | `/auth/refresh` | público | `{ refreshToken }` → par nuevo; cada refresh sólo se acepta una vez |
 | POST | `/auth/logout` | autenticado | logout GLOBAL (`tokenVersion++`) |
 | GET | `/auth/me` | autenticado | `{ user, role, company, branch }` |
 | POST | `/auth/change-password` | autenticado (rate limit) | `{ currentPassword, newPassword }` |
 | GET/POST | `/companies` | plataforma (`companies.*`) | listar / crear (aprovisiona sucursal + 10 roles) |
 | GET | `/companies/me` | miembro de empresa | empresa del usuario (header del frontend) |
+| GET/PATCH | `/companies/me/settings` | `settings.read/update` | ajustes acotados al tenant autenticado; PATCH parcial validado |
 | GET/PATCH/DELETE | `/companies/:id` | `companies.read/update/delete` | detalle / editar (plataforma o admin de la empresa) / suspender (plataforma) |
 | GET/POST | `/branches` | `branches.read/create` | sucursales del tenant (`requireTenant`) |
 | GET/PATCH/DELETE | `/branches/:id` | `branches.*` | guardas: predeterminada, en uso, única |
@@ -86,6 +87,8 @@ Autenticación: `Authorization: Bearer <accessToken>`.
 > **No existe `PATCH`/`DELETE` sobre `/inventory/movements`:** el histórico es inmutable (404 en esas rutas). Ver ADR-008. Los documentos de compra/venta tampoco exponen `DELETE`: se crean en `DRAFT` y sólo se aprueban o rechazan (ADR-010). Tampoco existen `PATCH`/`DELETE` sobre `/finance/incomes` y `/finance/expenses`: son **append-only** y sólo admiten anulación con motivo (404 en esas rutas, ADR-011). Tampoco existen `DELETE` sobre `/crm/leads`, `/hr/employees`, `/production/boms` ni `/production/orders`: la baja siempre es un cambio de estado del ciclo de vida (404 en esas rutas, ADR-012).
 
 Parámetros comunes de listado: `?page=1&limit=20&search=&sortBy=&sortDir=asc|desc` (+ filtros `status`, `roleId`, `branchId` donde aplique).
+
+La sesión de refresh se persiste en `sessions`: la API almacena un hash del identificador, lo consume atómicamente al rotar y rechaza tokens usados, expirados o revocados. El logout y el cambio de contraseña conservan la revocación global mediante `tokenVersion`.
 
 ## Ejemplo de flujo
 

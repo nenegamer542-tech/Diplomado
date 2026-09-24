@@ -3,6 +3,9 @@
 const ApiError = require('../../utils/ApiError');
 const { hashPassword, verifyPassword } = require('../../utils/password');
 const { signAccessToken, signRefreshToken, verifyRefreshToken } = require('../../utils/tokens');
+const { randomUUID, createHash } = require('crypto');
+const jwt = require('jsonwebtoken');
+const Session = require('./session.model');
 const userRepository = require('../users/user.repository');
 const roleRepository = require('../roles/role.repository');
 const companyRepository = require('../companies/company.repository');
@@ -10,6 +13,23 @@ const branchRepository = require('../branches/branch.repository');
 const auditService = require('../audit/audit.service');
 
 const MAX_FAILED_ATTEMPTS = 5;
+function hashSessionId(sessionId) {
+  return createHash('sha256').update(sessionId).digest('hex');
+}
+
+async function issueRefreshToken(user) {
+  const sessionId = randomUUID();
+  const refreshToken = signRefreshToken(toTokenUser(user), sessionId);
+  const { exp } = jwt.decode(refreshToken);
+  await Session.create({
+    userId: user._id,
+    companyId: user.companyId || null,
+    tokenVersion: user.tokenVersion ?? 0,
+    refreshIdHash: hashSessionId(sessionId),
+    expiresAt: new Date(exp * 1000),
+  });
+  return refreshToken;
+}
 const INVALID_CREDENTIALS = 'Correo o contraseña incorrectos.';
 
 /**
@@ -125,7 +145,7 @@ const authService = {
     const result = {
       user: stripSecrets({ ...user, failedLoginAttempts: 0, lastLoginAt: new Date() }),
       accessToken: signAccessToken(tokenUser),
-      refreshToken: signRefreshToken(tokenUser),
+      refreshToken: await issueRefreshToken(user),
     };
 
     await auditService.log({
@@ -145,6 +165,9 @@ const authService = {
 
   async refresh({ refreshToken }) {
     const payload = verifyRefreshToken(refreshToken);
+    if (typeof payload.jti !== 'string' || !payload.jti) {
+      throw ApiError.unauthorized('Refresh token inválido o expirado.', 'REFRESH_INVALID');
+    }
 
     const user = await userRepository.findById(payload.sub);
     if (!user) throw ApiError.unauthorized('Refresh token inválido o expirado.', 'REFRESH_INVALID');
@@ -164,10 +187,25 @@ const authService = {
       }
     }
 
+    // El consumo atómico impide reutilizar el refresh token, incluso en solicitudes concurrentes.
+    const consumed = await Session.findOneAndUpdate(
+      {
+        userId: user._id,
+        tokenVersion: payload.tv ?? 0,
+        refreshIdHash: hashSessionId(payload.jti),
+        consumedAt: null,
+        expiresAt: { $gt: new Date() },
+      },
+      { $set: { consumedAt: new Date() } },
+      { new: true }
+    ).lean();
+    if (!consumed) {
+      throw ApiError.unauthorized('La sesión ya fue renovada o revocada.', 'SESSION_REVOKED');
+    }
     const tokenUser = toTokenUser(user);
     return {
       accessToken: signAccessToken(tokenUser),
-      refreshToken: signRefreshToken(tokenUser),
+      refreshToken: await issueRefreshToken(user),
     };
   },
 

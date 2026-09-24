@@ -42,6 +42,23 @@ router.get(
 router.get('/me', authenticate, requireTenant, controller.getMe);
 
 router.get(
+  '/me/settings',
+  authenticate,
+  requireTenant,
+  authorize('settings.read'),
+  controller.getSettings
+);
+
+router.patch(
+  '/me/settings',
+  authenticate,
+  requireTenant,
+  authorize('settings.update'),
+  validate({ body: schemas.settingsSchema }),
+  controller.updateSettings
+);
+
+router.get(
   '/:id',
   authenticate,
   authorize('companies.read'),

@@ -24,6 +24,27 @@ const DEFAULT_WAREHOUSE = {
   status: 'active',
 };
 
+const DEFAULT_SETTINGS = Object.freeze({
+  locale: 'es-MX',
+  dateFormat: 'DD/MM/YYYY',
+  fiscalYearStartMonth: 1,
+});
+
+function safeSettings(settings = {}) {
+  return {
+    locale: ['es-MX', 'en-US'].includes(settings.locale) ? settings.locale : DEFAULT_SETTINGS.locale,
+    dateFormat: ['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD'].includes(settings.dateFormat)
+      ? settings.dateFormat
+      : DEFAULT_SETTINGS.dateFormat,
+    fiscalYearStartMonth:
+      Number.isInteger(settings.fiscalYearStartMonth) &&
+      settings.fiscalYearStartMonth >= 1 &&
+      settings.fiscalYearStartMonth <= 12
+        ? settings.fiscalYearStartMonth
+        : DEFAULT_SETTINGS.fiscalYearStartMonth,
+  };
+}
+
 /**
  * Servicio de empresas (tenant raíz).
  *
@@ -35,6 +56,18 @@ const DEFAULT_WAREHOUSE = {
  *    proceso batch futuro (documentado en docs/database/README.md).
  */
 const companyService = {
+  async getSettings(companyId) {
+    const company = await companyRepository.findById(companyId);
+    if (!company) throw ApiError.notFound('Recurso no encontrado.');
+    return safeSettings(company.settings);
+  },
+
+  async updateSettings(companyId, patch) {
+    const company = await companyRepository.updateSettings(companyId, patch);
+    if (!company) throw ApiError.notFound('Recurso no encontrado.');
+    return safeSettings(company.settings);
+  },
+
   async list(filter, options) {
     return companyRepository.find(filter, options);
   },

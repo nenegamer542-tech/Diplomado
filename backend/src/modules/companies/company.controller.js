@@ -29,6 +29,18 @@ const getMe = asyncHandler(async (req, res) => {
   return ok(res, doc);
 });
 
+const getSettings = asyncHandler(async (req, res) => {
+  return ok(res, await companyService.getSettings(req.user.companyId));
+});
+
+const updateSettings = asyncHandler(async (req, res) => {
+  const before = await companyService.getSettings(req.user.companyId);
+  req.auditBefore = before;
+  req.auditResourceId = req.user.companyId;
+  const settings = await companyService.updateSettings(req.user.companyId, req.body);
+  return ok(res, settings);
+});
+
 const getById = asyncHandler(async (req, res) => {
   const doc = await companyService.getById(req.params.id, req.user);
   if (!doc) throw ApiError.notFound('Recurso no encontrado.');
@@ -59,4 +71,4 @@ const remove = asyncHandler(async (req, res) => {
   return ok(res, after);
 });
 
-module.exports = { list, getMe, getById, create, update, remove };
+module.exports = { list, getMe, getSettings, updateSettings, getById, create, update, remove };

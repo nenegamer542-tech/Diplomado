@@ -14,7 +14,9 @@ const path = require('path');
 const rootEnvPath = path.resolve(__dirname, '../../../.env');
 require('dotenv').config(fs.existsSync(rootEnvPath) ? { path: rootEnvPath } : undefined);
 
-const REQUIRED = ['MONGO_URI', 'JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET'];
+// Accept the legacy MONGODB_URI name while preferring the canonical MONGO_URI.
+const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI;
+const REQUIRED = ['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET'];
 
 function fail(message) {
   // Se imprime en consola a propósito: es el arranque, el logger aún no existe.
@@ -23,6 +25,7 @@ function fail(message) {
 }
 
 const missing = REQUIRED.filter((key) => !process.env[key]);
+if (!mongoUri) missing.unshift('MONGO_URI (o MONGODB_URI)');
 if (missing.length) {
   fail(`Faltan variables de entorno obligatorias: ${missing.join(', ')}. Copia .env.example a .env.`);
 }
@@ -40,7 +43,7 @@ const env = {
   nodeEnv: process.env.NODE_ENV || 'development',
   port: Number(process.env.PORT || 4000),
   apiPrefix: process.env.API_PREFIX || '/api/v1',
-  mongoUri: process.env.MONGO_URI,
+  mongoUri,
   jwt: {
     accessSecret: process.env.JWT_ACCESS_SECRET,
     refreshSecret: process.env.JWT_REFRESH_SECRET,

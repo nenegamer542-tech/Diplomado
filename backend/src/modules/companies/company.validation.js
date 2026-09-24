@@ -30,4 +30,15 @@ const listQuery = paginationQuery.extend({
   status: z.enum(['active', 'suspended']).optional(),
 });
 
-module.exports = { idParams, createSchema, updateSchema, listQuery };
+const settingsSchema = z
+  .object({
+    locale: z.enum(['es-MX', 'en-US']).optional(),
+    dateFormat: z.enum(['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD']).optional(),
+    fiscalYearStartMonth: z.number().int().min(1).max(12).optional(),
+  })
+  .strict()
+  .refine((settings) => Object.keys(settings).length > 0, {
+    message: 'Debe enviar al menos un ajuste.',
+  });
+
+module.exports = { idParams, createSchema, updateSchema, listQuery, settingsSchema };

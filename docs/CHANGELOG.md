@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## Seguimiento FASE 1 — 2026-09-24
+- Refresh tokens ahora incluyen un identificador aleatorio; se persiste únicamente su hash en `sessions` con vencimiento TTL.
+- La rotación consume la sesión con una actualización atómica y rechaza la reutilización del token anterior (`SESSION_REVOKED`). Logout y cambio de contraseña mantienen la revocación global por `tokenVersion`.
+- Core: agregado GET/PATCH `/companies/me/settings` para `locale`, `dateFormat` y `fiscalYearStartMonth`, con validación estricta, permisos RBAC y tenant derivado del token.
+- Aumentado el timeout de Jest a 30 segundos; el hook de producción podía superar 15 segundos bajo carga en Windows, aunque la suite aislada pasara.
+- QA local: 19/19 suites unitarias (267 pruebas) y 9/9 suites de integración (182 pruebas) aprobadas con MongoDB efímero; 449/449 pruebas en total. Incluye replay de refresh e aislamiento/permisos de settings.
+
 Formato: [Keep a Changelog](https://keepachangelog.com/). Todo cambio relevante se registra aquí (control de cambios, § reglas del prompt).
 
 ## [0.1.0] — 2026-09-21

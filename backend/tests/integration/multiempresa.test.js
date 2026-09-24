@@ -273,6 +273,56 @@ describeIfDb('Multiempresa + permisos (integración)', () => {
     expect(patch.body.data.status).toBe('active'); // el estado NO se aplica
   });
 
+  test('settings: permisos, validación y aislamiento usan siempre el tenant del token', async () => {
+    const initial = await request(app).get('/api/v1/companies/me/settings').set(auth(tokenA));
+    expect(initial.status).toBe(200);
+    expect(initial.body.data).toEqual({
+      locale: 'es-MX',
+      dateFormat: 'DD/MM/YYYY',
+      fiscalYearStartMonth: 1,
+    });
+
+    const updated = await request(app)
+      .patch('/api/v1/companies/me/settings')
+      .set(auth(tokenA))
+      .send({ locale: 'en-US', fiscalYearStartMonth: 7 });
+    expect(updated.status).toBe(200);
+    expect(updated.body.data).toEqual({
+      locale: 'en-US',
+      dateFormat: 'DD/MM/YYYY',
+      fiscalYearStartMonth: 7,
+    });
+
+    const otherTenant = await request(app).get('/api/v1/companies/me/settings').set(auth(tokenB));
+    expect(otherTenant.status).toBe(200);
+    expect(otherTenant.body.data.locale).toBe('es-MX');
+    expect(otherTenant.body.data.fiscalYearStartMonth).toBe(1);
+
+    const denied = await request(app)
+      .patch('/api/v1/companies/me/settings')
+      .set(auth(tokenVentasA))
+      .send({ locale: 'es-MX' });
+    expect(denied.status).toBe(403);
+
+    const injection = await request(app)
+      .patch('/api/v1/companies/me/settings')
+      .set(auth(tokenA))
+      .send({ locale: 'es-MX', companyId: B.company._id });
+    expect(injection.status).toBe(422);
+
+    const audit = await request(app).get('/api/v1/audit?limit=100').set(auth(tokenA));
+    expect(audit.status).toBe(200);
+    expect(
+      audit.body.data.some(
+        (entry) =>
+          entry.module === 'companies' &&
+          entry.action === 'PATCH_COMPANIES' &&
+          entry.resourceId === String(A.company._id) &&
+          entry.result === 'SUCCESS'
+      )
+    ).toBe(true);
+  });
+
   // Última prueba del archivo: toca la contraseña de ventasA.
   test('cambio de contraseña por admin: la nueva clave abre sesión', async () => {
     const patch = await request(app)

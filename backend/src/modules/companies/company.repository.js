@@ -14,6 +14,17 @@ class CompanyRepository extends BaseRepository {
   constructor() {
     super(Company, { requireTenant: false });
   }
+
+  /** Actualiza sólo claves de settings ya validadas y sin reemplazar el objeto completo. */
+  async updateSettings(companyId, settings) {
+    const set = Object.fromEntries(
+      Object.entries(settings).map(([key, value]) => [`settings.${key}`, value])
+    );
+    return this.model
+      .findOneAndUpdate({ _id: companyId }, { $set: set }, { new: true, runValidators: true })
+      .lean()
+      .exec();
+  }
 }
 
 module.exports = new CompanyRepository();

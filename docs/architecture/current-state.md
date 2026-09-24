@@ -23,7 +23,7 @@ Hay modulos de core, inventario, compras/ventas, finanzas/reportes, CRM, RRHH y 
 | Finanzas/BI | Cuentas, ingresos, gastos, presupuestos y reportes | Integracion financiera desde compras/ventas | Integracion automatica con ordenes no observada; cobertura no medida | Reportes pueden estar desconectados de compras/ventas | Alta |
 | CRM/RRHH/produccion | Leads, empleados, BOM y ordenes conectadas a inventario | Flujos completos con maestros compartidos | No aparecen asistencia/vacaciones, proyectos, activos ni POS; departamentos/puestos no son entidades | Alcance parcial frente al objetivo | Alta |
 | Frontend | Pantallas de core, inventario, compras, ventas, finanzas, CRM, RRHH y produccion | UX web/movil alineada con permisos | Exportacion web aprobada (240 modulos, bundle 496 kB); validacion visual manual pendiente por falta de navegador | UX real no acreditada | Media |
-| QA | 18 suites unitarias y 9 de integracion ejecutadas; todas pasan | Unit, API, integracion, E2E y seguridad con umbrales | E2E y prueba visual pendientes | Aprobacion funcional parcial | Alta |
+| QA | 19 suites unitarias y 9 de integracion ejecutadas; 449/449 pruebas pasan | Unit, API, integracion, E2E y seguridad con umbrales | E2E y prueba visual pendientes | Aprobacion funcional parcial | Alta |
 | Configuracion | `.env.example` usa `MONGO_URI`; no hay `.env` local | Secretos fuera del codigo y configuracion reproducible | Revocar la credencial en Atlas; la rama publica `main` ya fue reescrita | La revocacion y la limpieza de copias/caches externos no se verifican desde este entorno | Critica |
 | Git/documentacion | Rama `main` local/remota parte de `942bea9`; cambios actuales solo de documentacion | Trazabilidad por fase | Rotar credencial; validar UI manualmente; tratar respaldo local antiguo | La historia previa sigue en refs/objetos locales de recuperacion | Alta |
 
@@ -52,17 +52,21 @@ No se confirmo duplicacion de colecciones de clientes/proveedores. Compras, vent
 
 ## QA ejecutado
 
-- Unitarias: `npm.cmd --prefix backend run test:unit` - 18/18 suites, 264/264 pruebas aprobadas.
-- API/integracion: `npm.cmd --prefix backend run test:integration` - 9/9 suites, 181/181 pruebas aprobadas con MongoDB efimero.
+- Unitarias: `npm.cmd --prefix backend run test:unit` - 19/19 suites, 267/267 pruebas aprobadas.
+- API/integracion: `npm.cmd --prefix backend run test:integration` - 9/9 suites, 182/182 pruebas aprobadas con MongoDB efimero.
 - El primer recorrido encontro el KPI sales con un campo extra y fixtures/expectativas defectuosas. Se normalizo el KPI a `{count,total}` y se corrigieron las pruebas. El segundo recorrido paso completo.
 - Reporte anual: el filtro por year incluye todo el calendario; se corrigio la expectativa que excluia julio sin pedir rango parcial.
 - `git diff --check`: limpio.
-- Cobertura de lineas: 87.97% (2902/3299), supera el objetivo >=80%. Cobertura de ramas: 40.37% (631/1563).
+- Cobertura de lineas: 88.09% (2945/3343), supera el objetivo >=80%. Cobertura de ramas: 62.27% (992/1593).
 - `npm.cmd run export:web` en `frontend/`: exportacion exitosa, 240 modulos, bundle 496 kB. No fue posible abrir Firefox (Windows no permite ejecutar el alias disponible); no hay Playwright/Puppeteer instalado. Validacion visual y E2E quedan pendientes.
 
 ## Dependencias observadas
 
 Node.js v24.19.0, npm 11.7.0, Express 4, Mongoose 8, Jest 29, Supertest 7, Expo 51, React 18, React Native 0.74 y React Native Web 0.19 (segun manifests). Las pruebas de integracion corrieron con `mongodb-memory-server`, sin Atlas.
+
+## Seguimiento del core — 2026-09-24
+
+Se incorporó persistencia de sesiones de refresh: cada token lleva un `jti` aleatorio, la colección `sessions` conserva sólo su hash, y el refresh se consume con una actualización atómica para impedir replay. Se agregó `/companies/me/settings` con RBAC, validación estricta y tenant derivado del token. La suite completa pasó: 19 suites unitarias/267 pruebas, 9 suites de integración/182 pruebas, 449 pruebas en total; cobertura de líneas 88.09% (2945/3343) y ramas 62.27% (992/1593). No se usó Atlas como base de pruebas.
 
 ## Estado de Fase 0
 
