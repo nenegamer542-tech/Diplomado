@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## Seguimiento FASE 3 — 2026-09-24 (trazabilidad y conteo físico)
+- Productos permiten definir control `none`, `lot` o `serial`; se impide cambiarlo cuando ya hay stock, movimientos o trazabilidad.
+- Movimientos guardan identificadores trazables y el endpoint `GET /inventory/traceability` consulta los registros activos del tenant.
+- Compras, ventas y producción propagan lote/serie en la aprobación, consumo, producto terminado y compensaciones.
+- Añadido conteo físico persistido con lectura del stock esperado, publicación con referencia idempotente, reanudación parcial y conflicto si el stock cambió desde el conteo. Por ahora sólo admite productos sin control de lote/serie.
+- Fase 3 permanece NO APROBADA: falta conciliación física segura de lotes/series y su cobertura QA.
+- Verificación: export web OK (243 módulos, bundle 497 kB); suites dirigidas de inventario, compras/ventas y producción pasan. Regresión completa: 28/29 suites pasaron, pero `production.test.js` agotó el timeout de conexión de MongoDB efímero; repetición aislada de esa suite pasó 22/22. No se considera una regresión global limpia.
+
 ## Seguimiento FASE 3 — 2026-09-24 (incremento parcial)
 - Productos aceptan `maxStock` y validan que no sea inferior a `minStock`.
 - Añadido `GET /api/v1/inventory/alerts`, que suma existencias por empresa, encuentra stock bajo/sobre máximo y limita la respuesta al tenant autenticado.

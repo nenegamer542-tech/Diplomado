@@ -31,8 +31,20 @@ const updateSchema = z
     message: 'Debe indicar al menos un campo a actualizar.',
   });
 
-/** RELEASE y DONE no admiten cuerpo (tolera body ausente). */
-const emptyBody = z.object({}).strict().default({});
+const traceItemSchema = z.object({
+  identifier: z.string().trim().min(1).max(64).regex(/^[A-Za-z0-9._/-]+$/),
+  quantity: quantityPositive,
+  expiryDate: z.coerce.date().optional(),
+}).strict();
+
+const releaseSchema = z.object({
+  components: z.array(z.object({
+    productId: objectId,
+    traceability: z.array(traceItemSchema).min(1).max(100),
+  }).strict()).max(100).optional(),
+}).strict().default({});
+
+const doneSchema = z.object({ traceability: z.array(traceItemSchema).min(1).max(100).optional() }).strict().default({});
 
 const cancelSchema = z
   .object({
@@ -54,7 +66,8 @@ module.exports = {
   CANCEL_FIELDS,
   createSchema,
   updateSchema,
-  emptyBody,
+  releaseSchema,
+  doneSchema,
   cancelSchema,
   idParams,
   listQuery,

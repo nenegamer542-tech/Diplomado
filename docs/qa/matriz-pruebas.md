@@ -5,10 +5,11 @@
 | ID | Modulo | Proceso | Entrada | Resultado esperado | Resultado real | Estado |
 |---|---|---|---|---|---|---|
 | INV-LIMITS-01 | Inventario | Alertas minimo/maximo | Productos dentro/fuera de umbral y existencias en varios almacenes | Alertar stock bajo y sobre maximo; rechazar maximo menor que minimo; tenant aislado | Integracion `inventory.test.js` aprobada (33 pruebas) | APROBADO |
-| INV-LOT-SERIAL-01 | Inventario | Trazabilidad por lote/serie | Recepcion, salida, transferencia y consulta | Existencia y movimientos trazables por lote/serie | Aun no implementado | PENDIENTE |
-| INV-COUNT-01 | Inventario | Inventario fisico | Conteo, diferencias, aprobacion y aplicacion | Conteo persistido; diferencias aplicadas una sola vez a stock/Kardex | Aun no implementado | PENDIENTE |
+| INV-LOT-SERIAL-01 | Inventario/Compras/Ventas/Produccion | Trazabilidad por lote/serie | Entrada, salida, transferencia, aprobación compra/venta, consumo/terminación producción, consulta y compensación | Saldos agregados y trazables consistentes; identificador requerido; consulta tenant-scoped | Integración dirigida `inventory.test.js`, `orders.test.js`, `production.test.js`; aprobadas | APROBADO |
+| INV-COUNT-01 | Inventario | Conteo físico de producto no trazable | Conteo, diferencia, stock concurrente, reintento/publicación repetida y tenant ajeno | Conteo persistido; ajuste una sola vez; conflicto ante stock obsoleto; movimiento auditable | Integración `inventory.test.js`; aprobada para `trackingMode=none` | APROBADO |
+| INV-COUNT-02 | Inventario | Conteo físico de lote/serie | Diferencia de cantidad e identificadores por almacén | Conciliar agregado y detalle trazable en una sola operación segura | No soportado todavía; creación del conteo responde 409 | PENDIENTE |
 
-Regresion global tras este incremento (2026-09-24): **29/29 suites, 455/455 pruebas aprobadas**, cobertura de lineas 87.65%. Export web: exit 0 (243 modulos, bundle 496 kB). Esto no aprueba Fase 3 mientras los dos procesos pendientes arriba sigan sin implementar.
+Regresión completa (2026-09-24) con cobertura: 28/29 suites terminan aprobadas; `production.test.js` agotó los 30 s de `beforeAll` al iniciar/conectar MongoDB efímero en esa ejecución, sin ejecutar sus 22 casos. Reejecución aislada de producción: 22/22 aprobados. Prueba unitaria corregida `stock-rules.test.js`: 21/21 aprobados. Inventario, compras/ventas y front export pasan. La suite global no queda certificada sin repetir limpia; coverage generado en esa corrida excluye el grupo de producción y no se reporta como cobertura completa. La fase permanece NO APROBADA hasta implementar y probar INV-COUNT-02 y obtener regresión global limpia.
 
 ## FASE 2 — Datos maestros (seguimiento)
 

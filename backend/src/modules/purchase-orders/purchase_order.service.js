@@ -79,6 +79,7 @@ async function compensateEntries(lines, warehouseId, actor, code) {
         productId: line.productId,
         warehouseId,
         quantity: line.quantity,
+        traceability: line.traceability,
         reason: `Compensación de aprobación ${code}`,
         reference: code,
       }, actor)
@@ -169,6 +170,7 @@ const purchaseOrderService = {
             productId: line.productId,
             warehouseId: warehouse._id,
             quantity: line.quantity,
+            traceability: line.traceability,
             reason: `Aprobación de orden de compra ${order.code}`,
             reference: order.code,
           },

@@ -7,8 +7,10 @@ const validate = require('../../middlewares/validate');
 const preventUnknownFields = require('../../middlewares/preventUnknownFields');
 const controller = require('./inventory.controller');
 const schemas = require('./inventory.validation');
+const countRoutes = require('./inventory_count.routes');
 
 const router = Router();
+router.use('/counts', countRoutes);
 
 // --- Consulta (sólo lectura) ---
 router.get(
@@ -36,6 +38,15 @@ router.get(
   authorize('inventory.read'),
   validate({ query: schemas.movementsQuery }),
   controller.listMovements
+);
+
+router.get(
+  '/traceability',
+  authenticate,
+  requireTenant,
+  authorize('inventory.read'),
+  validate({ query: schemas.traceabilityQuery }),
+  controller.listTraceability
 );
 
 router.get(

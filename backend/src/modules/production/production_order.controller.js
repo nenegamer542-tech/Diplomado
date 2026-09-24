@@ -50,7 +50,7 @@ const release = asyncHandler(async (req, res) => {
   if (!before) throw ApiError.notFound('Recurso no encontrado.');
   req.auditBefore = before;
 
-  const after = await productionOrderService.release(req.params.id, req.user.companyId, req.user.id);
+  const after = await productionOrderService.release(req.params.id, req.user.companyId, req.user.id, req.body);
   return ok(res, after);
 });
 
@@ -59,7 +59,7 @@ const done = asyncHandler(async (req, res) => {
   if (!before) throw ApiError.notFound('Recurso no encontrado.');
   req.auditBefore = before;
 
-  const after = await productionOrderService.done(req.params.id, req.user.companyId, req.user.id);
+  const after = await productionOrderService.done(req.params.id, req.user.companyId, req.user.id, req.body);
   return ok(res, after);
 });
 

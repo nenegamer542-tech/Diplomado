@@ -2,6 +2,15 @@
 
 const mongoose = require('mongoose');
 
+const traceabilitySnapshotSchema = new mongoose.Schema(
+  {
+    identifier: { type: String, required: true, maxlength: 64 },
+    quantity: { type: Number, required: true, min: 0 },
+    expiryDate: { type: Date, default: null },
+  },
+  { _id: false, strict: true }
+);
+
 /**
  * INVENTORY MOVEMENT — Historial INMUTABLE de movimientos de stock.
  * Colección: inventory_movements (siempre companyId-scoped)
@@ -32,6 +41,8 @@ const inventoryMovementSchema = new mongoose.Schema(
     quantityAfter: { type: Number, required: true, min: 0 },
     reason: { type: String, trim: true, maxlength: 240, default: null },
     reference: { type: String, trim: true, maxlength: 60, default: null },
+    idempotencyKey: { type: String, trim: true, maxlength: 100, default: null },
+    traceability: { type: [traceabilitySnapshotSchema], default: [] },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   },
   { timestamps: true, strict: true }
@@ -41,5 +52,9 @@ inventoryMovementSchema.index({ companyId: 1, createdAt: -1 });
 inventoryMovementSchema.index({ companyId: 1, productId: 1, createdAt: -1 });
 inventoryMovementSchema.index({ companyId: 1, warehouseId: 1, createdAt: -1 });
 inventoryMovementSchema.index({ companyId: 1, type: 1, createdAt: -1 });
+inventoryMovementSchema.index(
+  { companyId: 1, idempotencyKey: 1 },
+  { unique: true, partialFilterExpression: { idempotencyKey: { $type: 'string' } } }
+);
 
 module.exports = mongoose.model('InventoryMovement', inventoryMovementSchema);

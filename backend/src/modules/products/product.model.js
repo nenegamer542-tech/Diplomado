@@ -29,6 +29,7 @@ const productSchema = new mongoose.Schema(
     category: { type: String, trim: true, maxlength: 100, default: null },
     brand: { type: String, trim: true, maxlength: 100, default: null },
     unit: { type: String, trim: true, maxlength: 20, default: 'pza' },
+    trackingMode: { type: String, enum: ['none', 'lot', 'serial'], default: 'none' },
     costPrice: { type: Number, min: [0, 'El precio de costo no puede ser negativo.'], default: 0 },
     salePrice: { type: Number, min: [0, 'El precio de venta no puede ser negativo.'], default: 0 },
     taxRate: { type: Number, min: 0, max: 100, default: 0 },

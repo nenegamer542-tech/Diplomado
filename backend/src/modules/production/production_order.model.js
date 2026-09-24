@@ -24,6 +24,7 @@ const lineSchema = new mongoose.Schema(
       required: true,
       min: [0.0001, 'La cantidad debe ser mayor que cero.'],
     },
+    traceability: { type: [{ identifier: { type: String, required: true, uppercase: true, maxlength: 64 }, quantity: { type: Number, required: true, min: 0.0001 }, expiryDate: Date }], default: undefined },
   },
   { _id: false, strict: true }
 );

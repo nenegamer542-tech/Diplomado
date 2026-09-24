@@ -9,6 +9,7 @@ const inventoryMovementRepository = require('./inventory_movement.repository');
 const Product = require('../products/product.model');
 const StockLevel = require('./stock_level.model');
 const mongoose = require('mongoose');
+const inventoryTraceRepository = require('./inventory_trace.repository');
 
 /**
  * Servicio de INVENTARIO (FASE 3) — multiempresa estricto.
@@ -34,6 +35,10 @@ function requireCompany(actor) {
   return actor.companyId;
 }
 
+function trackingMode(product) {
+  return product.trackingMode || 'none';
+}
+
 async function loadActiveProduct(productId, companyId) {
   const product = await productRepository.findById(productId, { companyId });
   if (!product) throw ApiError.notFound('Recurso no encontrado.');
@@ -50,6 +55,112 @@ async function loadActiveWarehouse(warehouseId, companyId) {
     throw ApiError.conflict('El almacén está inactivo; no admite movimientos de inventario.');
   }
   return warehouse;
+}
+
+function validateTraceability(product, data) {
+  const traceability = data.traceability;
+  const mode = trackingMode(product);
+  if (mode === 'none') {
+    if (traceability) throw ApiError.unprocessable('Este producto no utiliza lote ni serie.');
+    return [];
+  }
+  if (!Array.isArray(traceability) || !traceability.length) {
+    throw ApiError.unprocessable('Debe indicar lotes o series para este producto.');
+  }
+  const identifiers = traceability.map((item) => item.identifier.trim().toUpperCase());
+  if (new Set(identifiers).size !== identifiers.length) {
+    throw ApiError.unprocessable('No repita identificadores de lote/serie en un movimiento.');
+  }
+  const normalized = traceability.map((item, index) => ({ ...item, identifier: identifiers[index] }));
+  if (mode === 'lot') {
+    const total = normalized.reduce((sum, item) => sum + item.quantity, 0);
+    if (Math.abs(total - data.quantity) > 1e-8) {
+      throw ApiError.unprocessable('La suma de cantidades por lote debe coincidir con la cantidad del movimiento.');
+    }
+  } else if (!Number.isInteger(data.quantity) || normalized.length !== data.quantity || normalized.some((item) => item.quantity !== 1)) {
+    throw ApiError.unprocessable('Para productos seriados indique una serie única por unidad.');
+  }
+  return normalized;
+}
+
+async function addTrackedStock(product, companyId, warehouseId, items) {
+  const applied = [];
+  try {
+    for (const item of items) {
+      if (trackingMode(product) === 'lot') {
+        await inventoryTraceRepository.increaseLot(
+          { companyId, productId: product._id, warehouseId, identifier: item.identifier, expiryDate: item.expiryDate },
+          item.quantity
+        );
+        applied.push(item);
+        continue;
+      }
+      const existing = await inventoryTraceRepository.findByIdentifier(companyId, product._id, item.identifier);
+      if (existing?.quantity > 0) throw ApiError.conflict(`La serie ${item.identifier} ya está disponible en inventario.`);
+      if (existing) {
+        const serial = await inventoryTraceRepository.reactivateSerial(companyId, product._id, warehouseId, item.identifier);
+        if (!serial) throw ApiError.conflict(`La serie ${item.identifier} cambió durante la operación.`);
+        applied.push({ ...item, reactivated: true, previousWarehouseId: existing.warehouseId });
+      } else {
+        const serial = await inventoryTraceRepository.createSerial({ companyId, productId: product._id, warehouseId, identifier: item.identifier });
+        applied.push({ ...item, traceId: serial._id });
+      }
+    }
+    return applied;
+  } catch (err) {
+    await reverseTrackedEntry(product, companyId, warehouseId, applied);
+    if (err?.code === 11000) throw ApiError.conflict('El lote o la serie ya existe en inventario.');
+    throw err;
+  }
+}
+
+async function reverseTrackedEntry(product, companyId, warehouseId, items) {
+  for (const item of [...items].reverse()) {
+    if (product.trackingMode === 'lot') {
+      await inventoryTraceRepository.decrementLot(companyId, product._id, warehouseId, item.identifier, item.quantity);
+    } else {
+      await inventoryTraceRepository.deactivateSerial(companyId, product._id, warehouseId, item.identifier);
+      if (item.reactivated && item.previousWarehouseId) {
+        await inventoryTraceRepository.restoreSerialLocation(
+          companyId,
+          product._id,
+          warehouseId,
+          item.previousWarehouseId,
+          item.identifier
+        );
+      }
+    }
+  }
+}
+
+async function takeTrackedStock(product, companyId, warehouseId, items) {
+  const applied = [];
+  try {
+    for (const item of items) {
+      const changed = trackingMode(product) === 'lot'
+        ? await inventoryTraceRepository.decrementLot(companyId, product._id, warehouseId, item.identifier, item.quantity)
+        : await inventoryTraceRepository.deactivateSerial(companyId, product._id, warehouseId, item.identifier);
+      if (!changed) throw ApiError.conflict(`Cantidad insuficiente o identificador no disponible: ${item.identifier}.`);
+      applied.push(item);
+    }
+    return applied;
+  } catch (err) {
+    await restoreTrackedStock(product, companyId, warehouseId, applied);
+    throw err;
+  }
+}
+
+async function restoreTrackedStock(product, companyId, warehouseId, items) {
+  for (const item of items) {
+    if (trackingMode(product) === 'lot') {
+      await inventoryTraceRepository.increaseLot(
+        { companyId, productId: product._id, warehouseId, identifier: item.identifier, expiryDate: item.expiryDate },
+        item.quantity
+      );
+    } else {
+      await inventoryTraceRepository.reactivateSerial(companyId, product._id, warehouseId, item.identifier);
+    }
+  }
 }
 
 async function insufficientStock(companyId, warehouseId, productId) {
@@ -126,6 +237,15 @@ const inventoryService = {
   async listMovements(filter, options) {
     const { items, total } = await inventoryMovementRepository.find(filter, options);
     return { items: await hydrateMovements(items, filter.companyId), total };
+  },
+
+  async listTraceability(companyId, { productId, warehouseId, kind }) {
+    const product = await productRepository.findById(productId, { companyId });
+    if (!product) throw ApiError.notFound('Recurso no encontrado.');
+    const filter = { quantity: { $gt: 0 } };
+    if (warehouseId) filter.warehouseId = warehouseId;
+    if (kind) filter.kind = kind;
+    return inventoryTraceRepository.listForProduct(companyId, product._id, filter);
   },
 
   async listAlerts(companyId, { skip = 0, limit = 20 } = {}) {
@@ -213,9 +333,13 @@ const inventoryService = {
     const quantity = data.quantity;
     const key = { companyId, warehouseId: warehouse._id, productId: product._id };
 
-    const updated = await stockLevelRepository.increment(key, quantity);
+    const traceability = validateTraceability(product, data);
+    const tracked = trackingMode(product) !== 'none';
+    const appliedTrace = tracked ? await addTrackedStock(product, companyId, warehouse._id, traceability) : [];
+    let updated = null;
 
     try {
+      updated = await stockLevelRepository.increment(key, quantity);
       return await inventoryMovementRepository.create({
         companyId,
         type: 'ENTRY',
@@ -227,12 +351,14 @@ const inventoryService = {
         quantityAfter: updated.quantity,
         reason: data.reason || null,
         reference: data.reference || null,
+        traceability,
         userId: actor.userId || null,
       });
     } catch (err) {
-      await stockLevelRepository.decrementConditional(key, quantity).catch((compErr) => {
+      if (updated) await stockLevelRepository.decrementConditional(key, quantity).catch((compErr) => {
         logger.error({ err: compErr.message }, 'Compensación de entrada falló');
       });
+      if (tracked) await reverseTrackedEntry(product, companyId, warehouse._id, appliedTrace);
       throw err;
     }
   },
@@ -245,8 +371,14 @@ const inventoryService = {
     const quantity = data.quantity;
     const key = { companyId, warehouseId: warehouse._id, productId: product._id };
 
+    const traceability = validateTraceability(product, data);
+    const tracked = trackingMode(product) !== 'none';
+    const appliedTrace = tracked ? await takeTrackedStock(product, companyId, warehouse._id, traceability) : [];
     const source = await stockLevelRepository.decrementConditional(key, quantity);
-    if (!source) throw await insufficientStock(companyId, warehouse._id, product._id);
+    if (!source) {
+      if (tracked) await restoreTrackedStock(product, companyId, warehouse._id, appliedTrace);
+      throw await insufficientStock(companyId, warehouse._id, product._id);
+    }
 
     try {
       return await inventoryMovementRepository.create({
@@ -260,12 +392,14 @@ const inventoryService = {
         quantityAfter: source.quantity,
         reason: data.reason || null,
         reference: data.reference || null,
+        traceability,
         userId: actor.userId || null,
       });
     } catch (err) {
       await stockLevelRepository.increment(key, quantity).catch((compErr) => {
         logger.error({ err: compErr.message }, 'Compensación de salida falló');
       });
+      if (tracked) await restoreTrackedStock(product, companyId, warehouse._id, appliedTrace);
       throw err;
     }
   },
@@ -277,12 +411,18 @@ const inventoryService = {
   async adjustment(data, actor) {
     const companyId = requireCompany(actor);
     const product = await loadActiveProduct(data.productId, companyId);
+    if (trackingMode(product) !== 'none') {
+      throw ApiError.conflict('Tracked products must be adjusted through a traceable physical count.');
+    }
     const warehouse = await loadActiveWarehouse(data.warehouseId, companyId);
     const target = data.quantity;
     const key = { companyId, warehouseId: warehouse._id, productId: product._id };
 
     const current = await stockLevelRepository.getOne(companyId, warehouse._id, product._id);
     const before = current ? current.quantity : 0;
+    if (data.expectedQuantity !== undefined && before !== data.expectedQuantity) {
+      throw ApiError.conflict('El stock cambió desde que se inició el inventario físico. Vuelva a contar el producto.');
+    }
     const delta = target - before;
 
     let afterDoc = null;
@@ -311,6 +451,7 @@ const inventoryService = {
         quantityAfter: target,
         reason: data.reason,
         reference: data.reference || null,
+        idempotencyKey: data.idempotencyKey || null,
         userId: actor.userId || null,
       });
     } catch (err) {
@@ -343,19 +484,29 @@ const inventoryService = {
       ]);
     }
     const quantity = data.quantity;
+    const traceability = validateTraceability(product, data);
+    const tracked = trackingMode(product) !== 'none';
+    const appliedTrace = tracked ? await takeTrackedStock(product, companyId, from._id, traceability) : [];
     const sourceKey = { companyId, warehouseId: from._id, productId: product._id };
     const destKey = { companyId, warehouseId: to._id, productId: product._id };
 
     const sourceAfter = await stockLevelRepository.decrementConditional(sourceKey, quantity);
-    if (!sourceAfter) throw await insufficientStock(companyId, from._id, product._id);
+    if (!sourceAfter) {
+      if (tracked) await restoreTrackedStock(product, companyId, from._id, appliedTrace);
+      throw await insufficientStock(companyId, from._id, product._id);
+    }
 
     let destAfter;
+    let destTraces = [];
     try {
       destAfter = await stockLevelRepository.increment(destKey, quantity);
+      if (tracked) destTraces = await addTrackedStock(product, companyId, to._id, traceability);
     } catch (err) {
+      if (destAfter) await stockLevelRepository.decrementConditional(destKey, quantity);
       await stockLevelRepository.increment(sourceKey, quantity).catch((compErr) => {
         logger.error({ err: compErr.message }, 'Compensación de transferencia (origen) falló');
       });
+      if (tracked) await restoreTrackedStock(product, companyId, from._id, appliedTrace);
       throw err;
     }
 
@@ -372,6 +523,7 @@ const inventoryService = {
         quantityAfter: sourceAfter.quantity,
         reason: data.reason || null,
         reference: data.reference || null,
+        traceability,
         userId: actor.userId || null,
       });
     } catch (err) {
@@ -381,6 +533,10 @@ const inventoryService = {
       await stockLevelRepository.increment(sourceKey, quantity).catch((compErr) => {
         logger.error({ err: compErr.message }, 'Compensación de transferencia (origen) falló');
       });
+      if (tracked) {
+        await takeTrackedStock(product, companyId, to._id, destTraces);
+        await restoreTrackedStock(product, companyId, from._id, appliedTrace);
+      }
       throw err;
     }
   },

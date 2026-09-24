@@ -11,6 +11,16 @@ class InventoryMovementRepository extends BaseRepository {
   constructor() {
     super(InventoryMovement, { requireTenant: true });
   }
+
+  async findByReference(companyId, reference) {
+    this._guard({ companyId });
+    return this.model.findOne({ companyId, reference }).lean();
+  }
+
+  async findByIdempotencyKey(companyId, idempotencyKey) {
+    this._guard({ companyId });
+    return this.model.findOne({ companyId, idempotencyKey }).lean();
+  }
 }
 
 module.exports = new InventoryMovementRepository();

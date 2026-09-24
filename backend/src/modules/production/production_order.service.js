@@ -85,6 +85,7 @@ async function compensate(lines, warehouseId, actor, code, mode, context) {
         productId: line.productId,
         warehouseId,
         quantity: line.quantity,
+        traceability: line.traceability,
         reason: `Compensación de orden de producción ${code}`,
         reference: code,
       },
@@ -146,7 +147,7 @@ const productionOrderService = {
   },
 
   /** DRAFT → RELEASED: salidas de componentes escalados + snapshot en `lines`. */
-  async release(id, companyId, userId) {
+  async release(id, companyId, userId, data = {}) {
     const order = await productionOrderRepository.findById(id, { companyId });
     if (!order) throw ApiError.notFound('Recurso no encontrado.');
     if (order.status === 'RELEASED') throw ApiError.conflict('La orden ya fue liberada.');
@@ -160,9 +161,22 @@ const productionOrderService = {
     const warehouse = await resolveWarehouse(String(order.warehouseId), companyId);
     await loadActiveProduct(order.productId, companyId);
 
+    const supplied = data.components || [];
+    const suppliedIds = supplied.map((component) => String(component.productId));
+    if (new Set(suppliedIds).size !== suppliedIds.length) {
+      throw ApiError.unprocessable('No repita componentes al proporcionar lotes o series.');
+    }
+    const bomProductIds = new Set(bom.components.map((component) => String(component.productId)));
+    if (suppliedIds.some((productId) => !bomProductIds.has(productId))) {
+      throw ApiError.unprocessable('La trazabilidad debe pertenecer a un componente de la lista de materiales.');
+    }
+    const suppliedByProduct = new Map(supplied.map((component) => [String(component.productId), component.traceability]));
     const lines = bom.components.map((c) => ({
       productId: c.productId,
       quantity: round4(c.quantity * order.quantity),
+      ...(suppliedByProduct.has(String(c.productId))
+        ? { traceability: suppliedByProduct.get(String(c.productId)) }
+        : {}),
     }));
 
     const actor = { companyId, userId };
@@ -174,6 +188,7 @@ const productionOrderService = {
             productId: line.productId,
             warehouseId: warehouse._id,
             quantity: line.quantity,
+            traceability: line.traceability,
             reason: `Liberación de orden de producción ${order.code}`,
             reference: order.code,
           },
@@ -209,7 +224,7 @@ const productionOrderService = {
   },
 
   /** RELEASED → DONE: entrada del producto terminado. */
-  async done(id, companyId, userId) {
+  async done(id, companyId, userId, data = {}) {
     const order = await productionOrderRepository.findById(id, { companyId });
     if (!order) throw ApiError.notFound('Recurso no encontrado.');
     if (order.status === 'DONE') throw ApiError.conflict('La orden ya fue finalizada.');
@@ -222,7 +237,7 @@ const productionOrderService = {
 
     const actor = { companyId, userId };
     const finished = [
-      { productId: order.productId, quantity: order.quantity },
+      { productId: order.productId, quantity: order.quantity, traceability: data.traceability },
     ];
 
     // La entrada valida producto/almacén activos; si falla, no hay cambio de estado.
@@ -231,6 +246,7 @@ const productionOrderService = {
         productId: order.productId,
         warehouseId: order.warehouseId,
         quantity: order.quantity,
+        traceability: data.traceability,
         reason: `Finalización de orden de producción ${order.code}`,
         reference: order.code,
       },
@@ -282,7 +298,8 @@ const productionOrderService = {
             {
               productId: line.productId,
               warehouseId: order.warehouseId,
-              quantity: line.quantity,
+        quantity: line.quantity,
+        traceability: line.traceability,
               reason: `Cancelación de orden de producción ${order.code}`,
               reference: order.code,
             },

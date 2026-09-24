@@ -18,6 +18,7 @@ const lineSchema = new mongoose.Schema(
     productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
     quantity: { type: Number, required: true, min: [1, 'La cantidad debe ser mayor que cero.'] },
     unitCost: { type: Number, required: true, min: [0, 'El costo no puede ser negativo.'] },
+    traceability: { type: [{ identifier: { type: String, required: true, uppercase: true, maxlength: 64 }, quantity: { type: Number, required: true, min: 0.0001 }, expiryDate: Date }], default: undefined },
   },
   { _id: false, strict: true }
 );

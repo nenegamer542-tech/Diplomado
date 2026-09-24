@@ -147,10 +147,11 @@ describe('Orden de producción — createSchema / flujo', () => {
     expect(orderSchemas.updateSchema.safeParse({ quantity: 8, status: 'DONE' }).success).toBe(false);
   });
 
-  test('emptyBody (release/done): tolera el cuerpo ausente pero rechaza campos', () => {
-    expect(orderSchemas.emptyBody.safeParse(undefined).success).toBe(true);
-    expect(orderSchemas.emptyBody.safeParse({}).success).toBe(true);
-    expect(orderSchemas.emptyBody.safeParse({ reason: 'x' }).success).toBe(false);
+  test('release/done admiten trazabilidad estricta y toleran body vacío', () => {
+    expect(orderSchemas.releaseSchema.safeParse(undefined).success).toBe(true);
+    expect(orderSchemas.doneSchema.safeParse({}).success).toBe(true);
+    expect(orderSchemas.releaseSchema.safeParse({ components: [{ productId: C1, traceability: [{ identifier: 'LOT-1', quantity: 1 }] }] }).success).toBe(true);
+    expect(orderSchemas.doneSchema.safeParse({ reason: 'x' }).success).toBe(false);
   });
 
   test('cancelSchema exige reason (>= 2); CANCEL_FIELDS = ["reason"]', () => {

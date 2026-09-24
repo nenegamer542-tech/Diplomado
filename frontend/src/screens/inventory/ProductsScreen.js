@@ -12,6 +12,11 @@ const STATUS_OPTIONS = [
   { value: 'active', label: 'Activo' },
   { value: 'inactive', label: 'Inactivo' },
 ];
+const TRACKING_OPTIONS = [
+  { value: 'none', label: 'Sin seguimiento' },
+  { value: 'lot', label: 'Por lote' },
+  { value: 'serial', label: 'Por serie' },
+];
 
 const FIELDS = [
   { name: 'sku', label: 'SKU', required: true, placeholder: 'PROD-001' },
@@ -19,6 +24,7 @@ const FIELDS = [
   { name: 'barcode', label: 'Código de barras' },
   { name: 'category', label: 'Categoría' },
   { name: 'unit', label: 'Unidad (ud, kg…)' },
+  { name: 'trackingMode', label: 'Trazabilidad', type: 'select', options: TRACKING_OPTIONS, defaultValue: 'none' },
   { name: 'costPrice', label: 'Costo', type: 'number' },
   { name: 'salePrice', label: 'Precio de venta', type: 'number' },
   { name: 'taxRate', label: 'Impuesto (%)', type: 'number' },

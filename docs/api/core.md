@@ -31,6 +31,10 @@ Autenticación: `Authorization: Bearer <accessToken>`.
 | GET/POST | `/master-data/:type` | `masterdata.read/create` | catálogos `categories`, `brands`, `units`, `currencies`, `taxes`; companyId se deriva del token |
 | GET/PATCH/DELETE | `/master-data/:type/:id` | `masterdata.read/update/delete` | detalle, edición y borrado protegido si el maestro está en uso |
 | GET | `/inventory/alerts` | `inventory.read` | Productos activos cuyo stock agregado entre almacenes está en/bajo el mínimo o en/sobre el máximo |
+| GET | `/inventory/traceability` | `inventory.read` | Lotes/series activos por `productId` y `warehouseId` opcionales; aislamiento por empresa del token |
+| GET | `/inventory/counts` · `/inventory/counts/:id` | `inventory.read` | Lista y detalle de conteos físicos tenant-scoped |
+| POST | `/inventory/counts` | `inventory.adjustments.create` | Crea conteo para un almacén con `lines: [{ productId, countedQuantity }]`; actualmente sólo productos sin lote/serie |
+| POST | `/inventory/counts/:id/post` | `inventory.adjustments.create` | Publica de forma idempotente; valida que el stock siga igual al iniciar conteo, permite reanudar publicación parcial; conteo repetido ya publicado da 409 |
 
 Los productos pueden recibir `categoryId`, `brandId`, `unitId` y `taxId`; se validan dentro del tenant y deben estar activos. Los campos de texto existentes siguen como snapshots para compatibilidad y se sincronizan al editar el maestro. Las cuentas aceptan `currencyId`; la moneda debe pertenecer al tenant. Cada empresa nueva se aprovisiona con el maestro de su moneda base.
 | GET/POST | `/branches` | `branches.read/create` | sucursales del tenant (`requireTenant`) |

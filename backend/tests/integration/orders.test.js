@@ -520,4 +520,43 @@ describeIfDb('API /suppliers, /customers, /purchase-orders y /sales-orders (inte
     });
     expect(settled).toBe(true);
   });
+
+  test('compras y ventas aplican lotes trazables al aprobar y no omiten el control', async () => {
+    const supplier = await request(app).post('/api/v1/suppliers').set(auth(comprasToken)).send({
+      code: 'TRACE-PROV', name: 'Proveedor trazable',
+    });
+    const customer = await request(app).post('/api/v1/customers').set(auth(ventasToken)).send({
+      code: 'TRACE-CLI', name: 'Cliente trazable',
+    });
+    const product = await request(app).post('/api/v1/products').set(auth(adminAToken)).send({
+      sku: 'TRACE-LOT', name: 'Artículo por lote', trackingMode: 'lot',
+    });
+    expect([supplier.status, customer.status, product.status]).toEqual([201, 201, 201]);
+
+    const purchase = await request(app).post('/api/v1/purchase-orders').set(auth(comprasToken)).send({
+      supplierId: supplier.body.data._id,
+      lines: [{ productId: product.body.data._id, quantity: 4, unitCost: 10, traceability: [{ identifier: 'BUY-LOT', quantity: 4 }] }],
+    });
+    expect(purchase.status).toBe(201);
+    const approvedPurchase = await request(app).post(`/api/v1/purchase-orders/${purchase.body.data._id}/approve`).set(auth(gerenteToken)).send({});
+    expect(approvedPurchase.status).toBe(200);
+
+    const missingTrace = await request(app).post('/api/v1/sales-orders').set(auth(ventasToken)).send({
+      customerId: customer.body.data._id,
+      lines: [{ productId: product.body.data._id, quantity: 1, unitPrice: 20 }],
+    });
+    expect(missingTrace.status).toBe(201);
+    const rejectedSale = await request(app).post(`/api/v1/sales-orders/${missingTrace.body.data._id}/approve`).set(auth(gerenteToken)).send({});
+    expect(rejectedSale.status).toBe(422);
+
+    const sale = await request(app).post('/api/v1/sales-orders').set(auth(ventasToken)).send({
+      customerId: customer.body.data._id,
+      lines: [{ productId: product.body.data._id, quantity: 3, unitPrice: 20, traceability: [{ identifier: 'BUY-LOT', quantity: 3 }] }],
+    });
+    expect(sale.status).toBe(201);
+    const approvedSale = await request(app).post(`/api/v1/sales-orders/${sale.body.data._id}/approve`).set(auth(gerenteToken)).send({});
+    expect(approvedSale.status).toBe(200);
+    const trace = await request(app).get(`/api/v1/inventory/traceability?productId=${product.body.data._id}`).set(auth(adminAToken));
+    expect(trace.body.data).toEqual(expect.arrayContaining([expect.objectContaining({ identifier: 'BUY-LOT', quantity: 1 })]));
+  });
 });

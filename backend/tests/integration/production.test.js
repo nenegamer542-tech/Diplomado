@@ -455,4 +455,43 @@ describeIfDb('API /production/* (integración FASE 6)', () => {
     });
     expect(found).toBe(true);
   });
+
+  test('produccion consume lotes y asigna series al producto terminado', async () => {
+    const raw = await request(app).post('/api/v1/products').set(auth(adminAToken)).send({
+      sku: 'PROD-LOT-RAW', name: 'Materia prima por lote', trackingMode: 'lot',
+    });
+    const finished = await request(app).post('/api/v1/products').set(auth(adminAToken)).send({
+      sku: 'PROD-SER-FIN', name: 'Terminado seriado', trackingMode: 'serial',
+    });
+    expect([raw.status, finished.status]).toEqual([201, 201]);
+
+    const entry = await request(app).post('/api/v1/inventory/entries').set(auth(adminAToken)).send({
+      productId: raw.body.data._id, warehouseId: warehouseMainId, quantity: 4,
+      traceability: [{ identifier: 'RAW-LOT-1', quantity: 4 }],
+    });
+    expect(entry.status).toBe(201);
+
+    const bom = await request(app).post('/api/v1/production/boms').set(auth(adminAToken)).send({
+      productId: finished.body.data._id,
+      components: [{ productId: raw.body.data._id, quantity: 2 }],
+    });
+    expect(bom.status).toBe(201);
+    const order = await request(app).post('/api/v1/production/orders').set(auth(produccionToken)).send({
+      bomId: bom.body.data._id, quantity: 2,
+    });
+    expect(order.status).toBe(201);
+
+    const release = await request(app).post(`/api/v1/production/orders/${order.body.data._id}/release`).set(auth(produccionToken)).send({
+      components: [{ productId: raw.body.data._id, traceability: [{ identifier: 'RAW-LOT-1', quantity: 4 }] }],
+    });
+    expect(release.status).toBe(200);
+    expect(release.body.data.lines[0].traceability[0].identifier).toBe('RAW-LOT-1');
+
+    const done = await request(app).post(`/api/v1/production/orders/${order.body.data._id}/done`).set(auth(produccionToken)).send({
+      traceability: [{ identifier: 'FIN-SN-1', quantity: 1 }, { identifier: 'FIN-SN-2', quantity: 1 }],
+    });
+    expect(done.status).toBe(200);
+    const finishedTrace = await request(app).get(`/api/v1/inventory/traceability?productId=${finished.body.data._id}`).set(auth(adminAToken));
+    expect(finishedTrace.body.data.map((item) => item.identifier)).toEqual(['FIN-SN-1', 'FIN-SN-2']);
+  });
 });

@@ -572,4 +572,117 @@ describeIfDb('API /products, /warehouses e /inventory (integración FASE 3)', ()
     expect(otherTenant.status).toBe(200);
     expect(otherTenant.body.data).toHaveLength(0);
   });
+
+  test('lotes y series conservan saldo trazable en entrada, salida, transferencia y tenant', async () => {
+    const lotProduct = await request(app).post('/api/v1/products').set(auth(adminAToken)).send({
+      sku: 'LOT-01', name: 'Producto por lote', trackingMode: 'lot',
+    });
+    expect(lotProduct.status).toBe(201);
+    const missingLot = await request(app).post('/api/v1/inventory/entries').set(auth(almacenToken)).send({
+      productId: lotProduct.body.data._id, warehouseId: warehouseMainId, quantity: 3,
+    });
+    expect(missingLot.status).toBe(422);
+
+    const lotEntry = await request(app).post('/api/v1/inventory/entries').set(auth(almacenToken)).send({
+      productId: lotProduct.body.data._id, warehouseId: warehouseMainId, quantity: 5,
+      traceability: [
+        { identifier: 'lot-a', quantity: 3, expiryDate: '2027-01-01' },
+        { identifier: 'lot-b', quantity: 2 },
+      ],
+    });
+    expect(lotEntry.status).toBe(201);
+    expect(lotEntry.body.data.traceability[0].identifier).toBe('LOT-A');
+
+    const insufficientLot = await request(app).post('/api/v1/inventory/exits').set(auth(almacenToken)).send({
+      productId: lotProduct.body.data._id, warehouseId: warehouseMainId, quantity: 4,
+      traceability: [{ identifier: 'LOT-A', quantity: 4 }],
+    });
+    expect(insufficientLot.status).toBe(409);
+
+    const lotExit = await request(app).post('/api/v1/inventory/exits').set(auth(almacenToken)).send({
+      productId: lotProduct.body.data._id, warehouseId: warehouseMainId, quantity: 2,
+      traceability: [{ identifier: 'LOT-A', quantity: 2 }],
+    });
+    expect(lotExit.status).toBe(201);
+    const lotTransfer = await request(app).post('/api/v1/inventory/transfers').set(auth(almacenToken)).send({
+      productId: lotProduct.body.data._id, fromWarehouseId: warehouseMainId, toWarehouseId: warehouseSucId,
+      quantity: 1, traceability: [{ identifier: 'LOT-B', quantity: 1 }],
+    });
+    expect(lotTransfer.status).toBe(201);
+    const lots = await request(app).get(`/api/v1/inventory/traceability?productId=${lotProduct.body.data._id}`).set(auth(adminAToken));
+    expect(lots.status).toBe(200);
+    expect(lots.body.data.map((item) => item.identifier)).toEqual(expect.arrayContaining(['LOT-A', 'LOT-B']));
+    const foreignLots = await request(app).get(`/api/v1/inventory/traceability?productId=${lotProduct.body.data._id}`).set(auth(adminBToken));
+    expect(foreignLots.status).toBe(404);
+    const changeTracking = await request(app).patch(`/api/v1/products/${lotProduct.body.data._id}`).set(auth(adminAToken)).send({ trackingMode: 'none' });
+    expect(changeTracking.status).toBe(409);
+
+    const serialProduct = await request(app).post('/api/v1/products').set(auth(adminAToken)).send({
+      sku: 'SER-01', name: 'Producto seriado', trackingMode: 'serial',
+    });
+    expect(serialProduct.status).toBe(201);
+    const serialEntry = await request(app).post('/api/v1/inventory/entries').set(auth(almacenToken)).send({
+      productId: serialProduct.body.data._id, warehouseId: warehouseMainId, quantity: 2,
+      traceability: [{ identifier: 'sn-1', quantity: 1 }, { identifier: 'sn-2', quantity: 1 }],
+    });
+    expect(serialEntry.status).toBe(201);
+    const duplicateSerial = await request(app).post('/api/v1/inventory/entries').set(auth(almacenToken)).send({
+      productId: serialProduct.body.data._id, warehouseId: warehouseMainId, quantity: 1,
+      traceability: [{ identifier: 'SN-1', quantity: 1 }],
+    });
+    expect(duplicateSerial.status).toBe(409);
+    const serialTransfer = await request(app).post('/api/v1/inventory/transfers').set(auth(almacenToken)).send({
+      productId: serialProduct.body.data._id, fromWarehouseId: warehouseMainId, toWarehouseId: warehouseSucId,
+      quantity: 1, traceability: [{ identifier: 'SN-2', quantity: 1 }],
+    });
+    expect(serialTransfer.status).toBe(201);
+    const serialExit = await request(app).post('/api/v1/inventory/exits').set(auth(almacenToken)).send({
+      productId: serialProduct.body.data._id, warehouseId: warehouseMainId, quantity: 1,
+      traceability: [{ identifier: 'SN-1', quantity: 1 }],
+    });
+    expect(serialExit.status).toBe(201);
+  });
+
+  test('inventario físico persiste el conteo, aplica diferencias una vez y detecta stock obsoleto', async () => {
+    const product = await request(app).post('/api/v1/products').set(auth(adminAToken)).send({
+      sku: 'COUNT-001', name: 'Producto para conteo',
+    });
+    expect(product.status).toBe(201);
+    const entry = await request(app).post('/api/v1/inventory/entries').set(auth(almacenToken)).send({
+      productId: product.body.data._id, warehouseId: warehouseMainId, quantity: 10,
+    });
+    expect(entry.status).toBe(201);
+
+    const count = await request(app).post('/api/v1/inventory/counts').set(auth(adminAToken)).send({
+      warehouseId: warehouseMainId,
+      lines: [{ productId: product.body.data._id, countedQuantity: 7 }],
+    });
+    expect(count.status).toBe(201);
+    expect(count.body.data.status).toBe('DRAFT');
+    expect(count.body.data.lines[0].expectedQuantity).toBe(10);
+
+    const foreignCount = await request(app).get(`/api/v1/inventory/counts/${count.body.data._id}`).set(auth(adminBToken));
+    expect(foreignCount.status).toBe(404);
+    const posted = await request(app).post(`/api/v1/inventory/counts/${count.body.data._id}/post`).set(auth(adminAToken)).send({});
+    expect(posted.status).toBe(200);
+    expect(posted.body.data.status).toBe('POSTED');
+    expect(posted.body.data.lines[0].applied).toBe(true);
+    const repeated = await request(app).post(`/api/v1/inventory/counts/${count.body.data._id}/post`).set(auth(adminAToken)).send({});
+    expect(repeated.status).toBe(409);
+    const stock = await request(app).get(`/api/v1/inventory/stock?productId=${product.body.data._id}`).set(auth(adminAToken));
+    expect(stock.body.data[0].quantity).toBe(7);
+
+    const stale = await request(app).post('/api/v1/inventory/counts').set(auth(adminAToken)).send({
+      warehouseId: warehouseMainId,
+      lines: [{ productId: product.body.data._id, countedQuantity: 6 }],
+    });
+    const concurrentEntry = await request(app).post('/api/v1/inventory/entries').set(auth(almacenToken)).send({
+      productId: product.body.data._id, warehouseId: warehouseMainId, quantity: 1,
+    });
+    expect(concurrentEntry.status).toBe(201);
+    const stalePost = await request(app).post(`/api/v1/inventory/counts/${stale.body.data._id}/post`).set(auth(adminAToken)).send({});
+    expect(stalePost.status).toBe(409);
+    const staleDetail = await request(app).get(`/api/v1/inventory/counts/${stale.body.data._id}`).set(auth(adminAToken));
+    expect(staleDetail.body.data.status).toBe('PARTIAL');
+  });
 });

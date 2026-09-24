@@ -21,6 +21,8 @@ const MasterData = require('../../backend/src/modules/master-data/master_data.mo
 const Warehouse = require('../../backend/src/modules/warehouses/warehouse.model');
 const StockLevel = require('../../backend/src/modules/inventory/stock_level.model');
 const InventoryMovement = require('../../backend/src/modules/inventory/inventory_movement.model');
+const InventoryTrace = require('../../backend/src/modules/inventory/inventory_trace.model');
+const InventoryCount = require('../../backend/src/modules/inventory/inventory_count.model');
 const Supplier = require('../../backend/src/modules/suppliers/supplier.model');
 const Customer = require('../../backend/src/modules/customers/customer.model');
 const PurchaseOrder = require('../../backend/src/modules/purchase-orders/purchase_order.model');
@@ -46,6 +48,8 @@ const MODELS = [
   Warehouse,
   StockLevel,
   InventoryMovement,
+  InventoryTrace,
+  InventoryCount,
   Supplier,
   Customer,
   PurchaseOrder,

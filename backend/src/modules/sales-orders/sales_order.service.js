@@ -80,6 +80,7 @@ async function compensateExits(lines, warehouseId, actor, code) {
         productId: line.productId,
         warehouseId,
         quantity: line.quantity,
+        traceability: line.traceability,
         reason: `Compensación de aprobación ${code}`,
         reference: code,
       }, actor)
@@ -170,6 +171,7 @@ const salesOrderService = {
             productId: line.productId,
             warehouseId: warehouse._id,
             quantity: line.quantity,
+            traceability: line.traceability,
             reason: `Aprobación de pedido de venta ${order.code}`,
             reference: order.code,
           },

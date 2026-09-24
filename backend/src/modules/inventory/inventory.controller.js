@@ -47,6 +47,11 @@ const listMovements = asyncHandler(async (req, res) => {
   return ok(res, items, buildMeta(page, limit, total));
 });
 
+const listTraceability = asyncHandler(async (req, res) => {
+  const items = await inventoryService.listTraceability(req.user.companyId, req.query);
+  return ok(res, items);
+});
+
 const getMovement = asyncHandler(async (req, res) => {
   const movement = await inventoryService.getMovement(req.params.id, req.user.companyId);
   if (!movement) throw ApiError.notFound('Recurso no encontrado.');
@@ -81,6 +86,7 @@ module.exports = {
   listStock,
   listAlerts,
   listMovements,
+  listTraceability,
   getMovement,
   createEntry,
   createExit,

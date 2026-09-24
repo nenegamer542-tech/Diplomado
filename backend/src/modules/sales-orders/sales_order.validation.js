@@ -19,6 +19,10 @@ const lineSchema = z
   .object({
     productId: objectId,
     quantity: quantityPositive,
+    traceability: z.array(z.object({
+      identifier: z.string().trim().min(1).max(64).regex(/^[A-Za-z0-9._/-]+$/),
+      quantity: quantityPositive,
+    }).strict()).min(1).max(100).optional(),
     unitPrice: z
       .number({ invalid_type_error: 'El precio debe ser numérico.' })
       .min(0, 'El precio no puede ser negativo.'),

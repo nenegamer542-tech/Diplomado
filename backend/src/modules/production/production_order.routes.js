@@ -57,8 +57,8 @@ router.post(
   authenticate,
   requireTenant,
   authorize('production.update'),
-  preventUnknownFields([]),
-  validate({ params: schemas.idParams, body: schemas.emptyBody }),
+  preventUnknownFields(['components']),
+  validate({ params: schemas.idParams, body: schemas.releaseSchema }),
   controller.release
 );
 
@@ -67,8 +67,8 @@ router.post(
   authenticate,
   requireTenant,
   authorize('production.update'),
-  preventUnknownFields([]),
-  validate({ params: schemas.idParams, body: schemas.emptyBody }),
+  preventUnknownFields(['traceability']),
+  validate({ params: schemas.idParams, body: schemas.doneSchema }),
   controller.done
 );
 

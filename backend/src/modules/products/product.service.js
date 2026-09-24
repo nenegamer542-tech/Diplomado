@@ -5,6 +5,7 @@ const productRepository = require('./product.repository');
 const stockLevelRepository = require('../inventory/stock_level.repository');
 const inventoryMovementRepository = require('../inventory/inventory_movement.repository');
 const masterDataRepository = require('../master-data/master_data.repository');
+const inventoryTraceRepository = require('../inventory/inventory_trace.repository');
 
 const MASTER_REFERENCES = [
   ['categoryId', 'category', 'category', 'name'],
@@ -58,6 +59,16 @@ const productService = {
     if (!product) throw ApiError.notFound('Recurso no encontrado.');
 
     const patch = await resolveMasterReferences(data, companyId);
+    if (patch.trackingMode && patch.trackingMode !== (product.trackingMode || 'none')) {
+      const [hasStock, hasMovements, hasTraces] = await Promise.all([
+        stockLevelRepository.hasStockForProduct(companyId, id),
+        inventoryMovementRepository.exists({ companyId, productId: id }),
+        inventoryTraceRepository.hasRecords(companyId, id),
+      ]);
+      if (hasStock || hasMovements || hasTraces) {
+        throw ApiError.conflict('No se puede cambiar la trazabilidad de un producto con historial o existencias.');
+      }
+    }
     const minStock = patch.minStock ?? product.minStock ?? 0;
     const maxStock = Object.hasOwn(patch, 'maxStock') ? patch.maxStock : product.maxStock;
     if (maxStock != null && maxStock < minStock) {
