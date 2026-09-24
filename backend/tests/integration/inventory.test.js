@@ -537,4 +537,39 @@ describeIfDb('API /products, /warehouses e /inventory (integración FASE 3)', ()
     });
     expect(settled).toBe(true);
   });
+
+  test('alertas de stock bajo y sobre máximo calculan existencias del tenant', async () => {
+    const invalidLimits = await request(app)
+      .post('/api/v1/products')
+      .set(auth(adminAToken))
+      .send({ sku: 'ALERT-BAD', name: 'Límites inválidos', minStock: 5, maxStock: 4 });
+    expect(invalidLimits.status).toBe(422);
+
+    const product = await request(app)
+      .post('/api/v1/products')
+      .set(auth(adminAToken))
+      .send({ sku: 'ALERT-01', name: 'Producto con límites', minStock: 2, maxStock: 4 });
+    expect(product.status).toBe(201);
+
+    const low = await request(app).get('/api/v1/inventory/alerts').set(auth(adminAToken));
+    expect(low.status).toBe(200);
+    expect(low.body.data).toEqual(expect.arrayContaining([
+      expect.objectContaining({ sku: 'ALERT-01', currentStock: 0, alertType: 'LOW_STOCK' }),
+    ]));
+    expect(low.body.data.find((item) => item.sku === 'ALERT-01')).not.toHaveProperty('costPrice');
+
+    const entry = await request(app)
+      .post('/api/v1/inventory/entries')
+      .set(auth(almacenToken))
+      .send({ productId: product.body.data._id, warehouseId: warehouseMainId, quantity: 5 });
+    expect(entry.status).toBe(201);
+    const high = await request(app).get('/api/v1/inventory/alerts').set(auth(adminAToken));
+    expect(high.body.data).toEqual(expect.arrayContaining([
+      expect.objectContaining({ sku: 'ALERT-01', currentStock: 5, alertType: 'OVER_MAXIMUM' }),
+    ]));
+
+    const otherTenant = await request(app).get('/api/v1/inventory/alerts').set(auth(adminBToken));
+    expect(otherTenant.status).toBe(200);
+    expect(otherTenant.body.data).toHaveLength(0);
+  });
 });

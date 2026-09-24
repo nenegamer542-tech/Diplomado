@@ -34,7 +34,7 @@ Campos: `companyId` (`null` = plataforma), `userId`, `userEmail`, `module`, `act
 Inmutabilidad: hooks de Mongoose bloquean updates/borrados (el TTL del servidor no pasa por ellos).
 
 ### `products` — catálogo de productos (FASE 3)
-Campos: `companyId`, `sku` (mayúsculas), `name`, `barcode`, `description`, `categoryId/brandId/unitId/taxId` (referencias opcionales a `master_data`), snapshots legados `category/brand/unit/taxRate`, `costPrice`, `salePrice`, `minStock`, `status: active|inactive`, timestamps.
+Campos: `companyId`, `sku` (mayúsculas), `name`, `barcode`, `description`, `categoryId/brandId/unitId/taxId` (referencias opcionales a `master_data`), snapshots legados `category/brand/unit/taxRate`, `costPrice`, `salePrice`, `minStock`, `maxStock` (nullable; `maxStock >= minStock`), `status: active|inactive`, timestamps.
 Índices: `{companyId:1, sku:1}` **unique** · `{companyId:1, status:1}` · `{companyId:1, name:1}`.
 
 ### `warehouses` — almacenes (FASE 3; empresa nace con `MAIN`)
@@ -119,7 +119,7 @@ RELEASE = salida de componentes con compensaciones (ADR-008); DONE = entrada del
 
 ## Plan de crecimiento (fases siguientes)
 
-- ~~FASE 3: `products`, `warehouses`, `stock_levels`, `inventory_movements`~~ ✅ implementadas (índices arriba).
+- FASE 3: `products`, `warehouses`, `stock_levels`, `inventory_movements` implementan flujos base; lotes, series e inventario físico formal aún pendientes (índices arriba).
 - ~~FASE 4: `suppliers`, `customers`, `purchase_orders`, `sales_orders`, `counters`~~ ✅ implementadas (índices arriba).
 - ~~FASE 5: `finance_accounts`, `incomes`, `expenses`, `budgets`~~ ✅ implementadas (índices arriba; los reportes no tienen colección propia: son agregaciones en línea, ADR-011).
 - ~~FASE 6: `leads`, `employees`, `boms`, `production_orders`~~ ✅ implementadas (índices arriba).

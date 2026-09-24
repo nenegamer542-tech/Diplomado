@@ -1,5 +1,15 @@
 # Matriz de pruebas QA (FASE 2 + 3 + 4 + 5 + 6)
 
+## FASE 3 — Inventario (seguimiento)
+
+| ID | Modulo | Proceso | Entrada | Resultado esperado | Resultado real | Estado |
+|---|---|---|---|---|---|---|
+| INV-LIMITS-01 | Inventario | Alertas minimo/maximo | Productos dentro/fuera de umbral y existencias en varios almacenes | Alertar stock bajo y sobre maximo; rechazar maximo menor que minimo; tenant aislado | Integracion `inventory.test.js` aprobada (33 pruebas) | APROBADO |
+| INV-LOT-SERIAL-01 | Inventario | Trazabilidad por lote/serie | Recepcion, salida, transferencia y consulta | Existencia y movimientos trazables por lote/serie | Aun no implementado | PENDIENTE |
+| INV-COUNT-01 | Inventario | Inventario fisico | Conteo, diferencias, aprobacion y aplicacion | Conteo persistido; diferencias aplicadas una sola vez a stock/Kardex | Aun no implementado | PENDIENTE |
+
+Regresion global tras este incremento (2026-09-24): **29/29 suites, 455/455 pruebas aprobadas**, cobertura de lineas 87.65%. Export web: exit 0 (243 modulos, bundle 496 kB). Esto no aprueba Fase 3 mientras los dos procesos pendientes arriba sigan sin implementar.
+
 ## FASE 2 — Datos maestros (seguimiento)
 
 | ID | Módulo | Proceso | Entrada | Resultado esperado | Resultado real | Estado |

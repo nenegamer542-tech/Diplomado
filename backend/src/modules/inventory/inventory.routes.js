@@ -21,6 +21,15 @@ router.get(
 );
 
 router.get(
+  '/alerts',
+  authenticate,
+  requireTenant,
+  authorize('inventory.read'),
+  validate({ query: schemas.stockQuery.pick({ page: true, limit: true }) }),
+  controller.listAlerts
+);
+
+router.get(
   '/movements',
   authenticate,
   requireTenant,

@@ -23,6 +23,7 @@ const FIELDS = [
   { name: 'salePrice', label: 'Precio de venta', type: 'number' },
   { name: 'taxRate', label: 'Impuesto (%)', type: 'number' },
   { name: 'minStock', label: 'Stock mínimo', type: 'number' },
+  { name: 'maxStock', label: 'Stock máximo', type: 'number' },
   { name: 'description', label: 'Descripción', type: 'textarea' },
   { name: 'status', label: 'Estado', type: 'select', options: STATUS_OPTIONS, defaultValue: 'active' },
 ];
@@ -55,6 +56,7 @@ export default function ProductsScreen() {
           { key: 'costPrice', label: 'Costo', width: 90, render: (r) => <Text style={styles.td}>{money(r.costPrice)}</Text> },
           { key: 'salePrice', label: 'Precio', width: 90, render: (r) => <Text style={styles.td}>{money(r.salePrice)}</Text> },
           { key: 'minStock', label: 'Stock mín.', width: 90 },
+          { key: 'maxStock', label: 'Stock máx.', width: 90 },
           { key: 'status', label: 'Estado', width: 100, render: (r) => <StatusBadge value={r.status} /> },
         ]}
         rows={list.items}

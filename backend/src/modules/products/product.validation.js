@@ -20,10 +20,11 @@ const CREATE_FIELDS = [
   'salePrice',
   'taxRate',
   'minStock',
+  'maxStock',
   'status',
 ];
 
-const createSchema = z
+const productObjectSchema = z
   .object({
     sku: z
       .string()
@@ -45,12 +46,19 @@ const createSchema = z
     salePrice: z.number().min(0).optional(),
     taxRate: z.number().min(0).max(100).optional(),
     minStock: z.number().min(0).optional(),
+    maxStock: z.number().min(0).nullable().optional(),
     status: z.enum(['active', 'inactive']).optional(),
   })
   .strict();
 
+const createSchema = productObjectSchema
+  .refine((value) => value.maxStock == null || value.maxStock === undefined || value.maxStock >= (value.minStock ?? 0), {
+    message: 'Stock máximo debe ser mayor o igual al stock mínimo.',
+    path: ['maxStock'],
+  });
+
 /** PATCH: parcial pero estricto (no vacío). */
-const updateSchema = createSchema
+const updateSchema = productObjectSchema
   .partial()
   .strict()
   .refine((obj) => Object.keys(obj).length > 0, {

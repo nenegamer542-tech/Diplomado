@@ -6,6 +6,9 @@ const productRepository = require('../products/product.repository');
 const warehouseRepository = require('../warehouses/warehouse.repository');
 const stockLevelRepository = require('./stock_level.repository');
 const inventoryMovementRepository = require('./inventory_movement.repository');
+const Product = require('../products/product.model');
+const StockLevel = require('./stock_level.model');
+const mongoose = require('mongoose');
 
 /**
  * Servicio de INVENTARIO (FASE 3) — multiempresa estricto.
@@ -123,6 +126,77 @@ const inventoryService = {
   async listMovements(filter, options) {
     const { items, total } = await inventoryMovementRepository.find(filter, options);
     return { items: await hydrateMovements(items, filter.companyId), total };
+  },
+
+  async listAlerts(companyId, { skip = 0, limit = 20 } = {}) {
+    const tenantId = new mongoose.Types.ObjectId(companyId);
+    const [result] = await Product.aggregate([
+      { $match: { companyId: tenantId, status: 'active' } },
+      {
+        $lookup: {
+          from: StockLevel.collection.name,
+          let: { productId: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ['$companyId', tenantId] },
+                    { $eq: ['$productId', '$$productId'] },
+                  ],
+                },
+              },
+            },
+            { $group: { _id: null, quantity: { $sum: '$quantity' } } },
+          ],
+          as: 'stockSummary',
+        },
+      },
+      { $set: { currentStock: { $ifNull: [{ $arrayElemAt: ['$stockSummary.quantity', 0] }, 0] } } },
+      {
+        $set: {
+          alertType: {
+            $switch: {
+              branches: [
+                {
+                  case: {
+                    $and: [{ $gt: ['$minStock', 0] }, { $lte: ['$currentStock', '$minStock'] }],
+                  },
+                  then: 'LOW_STOCK',
+                },
+                {
+                  case: {
+                    $and: [{ $ne: ['$maxStock', null] }, { $gte: ['$currentStock', '$maxStock'] }],
+                  },
+                  then: 'OVER_MAXIMUM',
+                },
+              ],
+              default: null,
+            },
+          },
+        },
+      },
+      { $match: { alertType: { $ne: null } } },
+      {
+        $project: {
+          _id: 1,
+          sku: 1,
+          name: 1,
+          unit: 1,
+          minStock: 1,
+          maxStock: 1,
+          currentStock: 1,
+          alertType: 1,
+        },
+      },
+      {
+        $facet: {
+          items: [{ $sort: { sku: 1 } }, { $skip: skip }, { $limit: limit }],
+          total: [{ $count: 'value' }],
+        },
+      },
+    ]);
+    return { items: result?.items || [], total: result?.total?.[0]?.value || 0 };
   },
 
   async getMovement(id, companyId) {

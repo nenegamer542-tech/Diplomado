@@ -41,6 +41,9 @@ const productService = {
   },
 
   async create(data, companyId) {
+    if (data.maxStock != null && data.maxStock < (data.minStock ?? 0)) {
+      throw ApiError.unprocessable('Stock máximo debe ser mayor o igual al stock mínimo.');
+    }
     data = await resolveMasterReferences(data, companyId);
     const sku = String(data.sku).toUpperCase();
     const existing = await productRepository.findBySku(companyId, sku);
@@ -55,6 +58,11 @@ const productService = {
     if (!product) throw ApiError.notFound('Recurso no encontrado.');
 
     const patch = await resolveMasterReferences(data, companyId);
+    const minStock = patch.minStock ?? product.minStock ?? 0;
+    const maxStock = Object.hasOwn(patch, 'maxStock') ? patch.maxStock : product.maxStock;
+    if (maxStock != null && maxStock < minStock) {
+      throw ApiError.unprocessable('Stock máximo debe ser mayor o igual al stock mínimo.');
+    }
     if (patch.sku) {
       const sku = String(patch.sku).toUpperCase();
       const existing = await productRepository.findBySku(companyId, sku);

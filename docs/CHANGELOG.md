@@ -1,10 +1,16 @@
 # CHANGELOG
 
+## Seguimiento FASE 3 — 2026-09-24 (incremento parcial)
+- Productos aceptan `maxStock` y validan que no sea inferior a `minStock`.
+- Añadido `GET /api/v1/inventory/alerts`, que suma existencias por empresa, encuentra stock bajo/sobre máximo y limita la respuesta al tenant autenticado.
+- QA dirigido de inventario: 33/33 pruebas aprobadas. Fase aún NO APROBADA: lotes, series e inventario físico formal siguen pendientes.
+- Regresion global: 29/29 suites y 455/455 pruebas aprobadas; cobertura de lineas 87.65%. Export React Native Web exitosa (243 modulos, 496 kB).
+
 ## Seguimiento FASE 2 — 2026-09-24
 - Añadidos catálogos maestros por empresa para categorías, marcas, unidades, monedas e impuestos con permisos RBAC, validación estricta, unicidad tenant-scoped y bloqueo de borrado cuando hay referencias.
 - Productos validan referencias del mismo tenant y conservan snapshots compatibles; las cuentas financieras aceptan moneda del catálogo. El alta de empresa aprovisiona su moneda base.
 - Añadida migración idempotente para enlazar los productos/cuentas/empresas existentes y completar permisos de roles de sistema; la semilla también incorpora permisos nuevos sin retirar los existentes.
-- QA específico: 42/42 pruebas objetivo aprobadas. Falta terminar la regresión completa antes de declarar la fase aprobada.
+- QA dirigido: 42/42 pruebas; regresión completa: 29 suites y 454 pruebas aprobadas. Fase 2 aprobada en código y QA; la migración real sigue pendiente por entorno.
 
 ## Seguimiento FASE 1 — 2026-09-24
 - Refresh tokens ahora incluyen un identificador aleatorio; se persiste únicamente su hash en `sessions` con vencimiento TTL.

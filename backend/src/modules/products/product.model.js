@@ -33,6 +33,7 @@ const productSchema = new mongoose.Schema(
     salePrice: { type: Number, min: [0, 'El precio de venta no puede ser negativo.'], default: 0 },
     taxRate: { type: Number, min: 0, max: 100, default: 0 },
     minStock: { type: Number, min: 0, default: 0 },
+    maxStock: { type: Number, min: 0, default: null },
     status: { type: String, enum: ['active', 'inactive'], default: 'active' },
   },
   { timestamps: true, strict: true }

@@ -2,7 +2,7 @@
 
 ERP modular multiempresa: **React Native + React Native Web** (Expo) · **Node.js + Express** · **MongoDB Atlas** · roles nativos Android (Kotlin) sólo para funciones puntuales.
 
-> Estado actual: Fases 0-7 implementadas parcialmente en código. Fase 2 agrega catálogos maestros tenant-scoped; ver `docs/qa/matriz-pruebas.md` para el estado de QA vigente. La Fase 0 continúa NO APROBADA hasta revocar la credencial expuesta históricamente en Atlas. Ver docs/architecture/current-state.md.
+> Estado actual: Fase 2 aprobada en código/QA; Fase 3 en curso (stock mínimo/máximo y alertas implementados; faltan lotes, series e inventario físico). Regresión backend: 29 suites, 455 pruebas aprobadas; cobertura de líneas 87.65%. Export web aprobada. Fase 0 continúa NO APROBADA hasta revocar externamente la credencial histórica de Atlas. Ver `docs/architecture/current-state.md` y `docs/qa/matriz-pruebas.md`.
 
 ## Estructura
 

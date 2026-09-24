@@ -22,6 +22,12 @@ const listStock = asyncHandler(async (req, res) => {
   return ok(res, items, buildMeta(page, limit, total));
 });
 
+const listAlerts = asyncHandler(async (req, res) => {
+  const { page, limit, skip } = parsePagination(req.query);
+  const { items, total } = await inventoryService.listAlerts(req.user.companyId, { skip, limit });
+  return ok(res, items, buildMeta(page, limit, total));
+});
+
 const listMovements = asyncHandler(async (req, res) => {
   const { page, limit, skip, sort } = parsePagination(req.query);
 
@@ -73,6 +79,7 @@ const createTransfer = asyncHandler(async (req, res) => {
 
 module.exports = {
   listStock,
+  listAlerts,
   listMovements,
   getMovement,
   createEntry,
