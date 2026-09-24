@@ -2,7 +2,7 @@
 
 ERP modular multiempresa: **React Native + React Native Web** (Expo) · **Node.js + Express** · **MongoDB Atlas** · roles nativos Android (Kotlin) sólo para funciones puntuales.
 
-> Estado actual: **FASE 0–7 completadas en código** (diagnóstico, backend base, core, inventario, compras/ventas, finanzas/reportes, CRM/RRHH/producción y **frontend de módulos**). **QA**: Node.js v24.19.0 instalado; unitarias ✅ **18/18 suites · 264/264 pruebas** (5 defectos detectados y corregidos); **export web ✅ 243 módulos** (2 defectos de frontend detectados y corregidos); API/integración ⬜ pendientes de `MONGO_URI_TEST`. Ver `docs/qa/matriz-pruebas.md`. Fases siguientes: **8 IA · 9 Integraciones**.
+> Estado actual: Fases 0-7 implementadas parcialmente en codigo. QA backend: unitarias e integracion APROBADO, 27/27 suites y 445/445 pruebas; cobertura de lineas 87.97%; export web APROBADO, 240 modulos. La inspeccion visual esta pendiente por falta de navegador. La Fase 0 sigue NO APROBADA hasta revocar la credencial expuesta historicamente en Atlas. Ver docs/architecture/current-state.md y docs/qa/matriz-pruebas.md.
 
 ## Estructura
 
@@ -99,14 +99,14 @@ npm run test:integration
 
 | Fase | Estado |
 |---|---|
-| 0 Diagnóstico | ✅ |
+| 0 Diagnostico | NO APROBADA: revocacion Atlas pendiente |
 | 1 Backend base | ✅ código |
-| 2 Core (auth/usuarios/empresas/sucursales/roles/permisos/auditoría) | ✅ código + unitarias ✅, ⏳ integración |
-| 3 Inventario (productos/almacenes/stock/movimientos) | ✅ código + unitarias ✅, ⏳ integración |
-| 4 Compras/Ventas (proveedores/clientes/órdenes) | ✅ código + unitarias ✅, ⏳ integración |
-| 5 Finanzas/Reportes | ✅ código + unitarias ✅, ⏳ integración |
-| 6 CRM/RRHH/Producción | ✅ código + unitarias ✅, ⏳ integración |
-| 7 Frontend de módulos (22 pantallas RN/RN Web) | ✅ código + unitarias ✅ + **export web ✅** (243 módulos), ⏳ prueba visual manual |
+| 2 Core | Implementada; unitarias y pruebas de integracion aprobadas |
+| 3 Inventario | Implementada; unitarias y pruebas de integracion aprobadas |
+| 4 Compras/Ventas | Implementada; unitarias y pruebas de integracion aprobadas |
+| 5 Finanzas/Reportes | Implementada; unitarias y pruebas de integracion aprobadas |
+| 6 CRM/RRHH/Produccion | Implementada; unitarias y pruebas de integracion aprobadas |
+| 7 Frontend de módulos (22 pantallas RN/RN Web) | ✅ código + unitarias ✅ + **export web ✅** (240 módulos), ⏳ prueba visual manual |
 | 8 IA | ⬜ |
 | 9 Integraciones | ⬜ |
 #Diplomado

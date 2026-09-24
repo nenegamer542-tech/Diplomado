@@ -79,3 +79,9 @@ Formato: [Keep a Changelog](https://keepachangelog.com/). Todo cambio relevante 
 
 ## Security audit - 2026-09-23
 - `.env.example` contained a MongoDB URI with apparent credentials and used `MONGODB_URI`, not the backend-required `MONGO_URI`. Removed credential assignments and added a placeholder URI with the correct name. QA: 18/18 unit suites (264 tests) and 9/9 integration suites (181 tests) passed; line coverage is 87.97% (above the 80% target). Atlas credential rotation and history cleanup decision remain pending.
+
+
+## Security audit follow-up - 2026-09-24
+- Reescrita la historia de la rama publica `main`; verificado que su historial actual no conserva las asignaciones MongoDB expuestas. La clave aun requiere revocacion en Atlas.
+- Export web validado: 240 modulos, bundle 496 kB. La revision visual queda bloqueada por falta de navegador automatizable.
+- Actualizados el estado de arquitectura, README y matriz QA con resultados y pendientes actuales.

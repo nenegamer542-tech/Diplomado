@@ -1,10 +1,10 @@
 # Matriz de pruebas QA (FASE 2 + 3 + 4 + 5 + 6)
 
-**Estado global (2026-09-23; suite completa con cobertura)**:
+**Estado global (2026-09-24; suite completa con cobertura)**:
 - **Unitarias: APROBADO**: 18/18 suites y 264/264 pruebas aprobadas.
 - **API + integracion: APROBADO**: 9/9 suites, 181/181 pruebas aprobadas con mongodb-memory-server efimero.
 - **Cobertura total**: lineas 87.97% (2902/3299), supera el objetivo >=80%; ramas 40.37% (631/1563).
-- **FASE 7 (frontend) ✅**: `expo export --platform web` → **exit 0, 243 módulos, bundle 496 kB**; verificaciones estáticas ✅ (imports de `react-native` por archivo, resolución de todos los imports relativos, coherencia `MENU`↔`SCREENS`↔`export default`). Defectos detectados y corregidos en el QA: módulo `src/lib/format.js` inexistente (14 pantallas lo importan) y `<Text>` sin importar en `Accounts/Budgets/Incomes/Expenses`. Prueba visual manual pendiente (`npm run web:frontend` o `http://localhost:8086` sobre `dist/`).
+- **FASE 7 (frontend)**: `npm.cmd run export:web` en `frontend/` -> **exit 0, 240 modulos, bundle 496 kB**. Revision visual manual bloqueada: no hay navegador automatizable instalado. El barrido estatico previo valido imports y coherencia de pantallas.
 - Ejecución que detectó 5 defectos de backend (ya corregidos, ver `docs/CHANGELOG.md`): `tenantFilter` podía ser pisado por `extra.companyId`, `budgetService.create` pasaba campos no-clave a `findByKey`, `auditService` persistía `before: undefined`, `isDuplicateKeyError(null)` devolvía `null`, `parsePagination` trataba `limit='0'` como ausente.
 
 ## Cómo ejecutar
@@ -79,3 +79,11 @@ cd backend ; npx jest --coverage
 2. Cobertura de líneas de `src/` ≥ 80% (revisar `npx jest --coverage`).
 3. Cada bug corregido ⇒ test nuevo en esta matriz.
 4. Actualizar `docs/CHANGELOG.md`.
+
+
+### FASE 0 - Seguridad de credenciales y visual (2026-09-24)
+
+| ID | Modulo | Proceso | Entrada | Resultado esperado | Resultado real | Estado |
+|---|---|---|---|---|---|---|
+| 32 | Seguridad | Revocacion de credencial Atlas | Usuario/clave expuestos historicamente | Credencial revocada, nueva credencial fuera del repositorio | Sin acceso autorizado a Atlas desde el entorno | BLOQUEADO |
+| 33 | Frontend | Inspeccion visual web | Exportacion Expo web | Pantallas revisadas en navegador | Build exportado (240 modulos); navegador no disponible | BLOQUEADO |
