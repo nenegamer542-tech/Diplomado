@@ -1,10 +1,10 @@
 # ERP Multiempresa
 
-> Seguimiento Fase 3 (2026-09-24): trazabilidad por lote/serie conectada a inventario, compras, ventas y producción; conteo físico persistido con publicación idempotente para productos sin trazabilidad. La conciliación de conteos para productos con lote/serie sigue pendiente, por lo que Fase 3 permanece NO APROBADA. Ver `docs/qa/matriz-pruebas.md`.
+> Seguimiento Fase 3 (2026-09-24): conteo físico concilia stock, lotes, series y vencimientos, con trazabilidad integrada a compras, ventas y producción. QA: 29 suites y 461 pruebas aprobadas. Ver `docs/qa/matriz-pruebas.md`.
 
 ERP modular multiempresa: **React Native + React Native Web** (Expo) · **Node.js + Express** · **MongoDB Atlas** · roles nativos Android (Kotlin) sólo para funciones puntuales.
 
-> Estado actual: Fase 2 aprobada en código/QA; Fase 3 en curso (stock mínimo/máximo y alertas implementados; faltan lotes, series e inventario físico). Regresión backend: 29 suites, 455 pruebas aprobadas; cobertura de líneas 87.65%. Export web aprobada. Fase 0 continúa NO APROBADA hasta revocar externamente la credencial histórica de Atlas. Ver `docs/architecture/current-state.md` y `docs/qa/matriz-pruebas.md`.
+> Estado actual: Fases 2 y 3 aprobadas en código/QA. Regresión backend: 29 suites, 461 pruebas aprobadas; cobertura de líneas 83.41% (ramas 62.10%). Export web aprobada. Fase 0 continúa NO APROBADA hasta revocar externamente la credencial histórica de Atlas. Ver `docs/architecture/current-state.md` y `docs/qa/matriz-pruebas.md`.
 
 ## Estructura
 
@@ -107,7 +107,7 @@ Las sesiones de refresh se persisten en `sessions`; cada refresh se consume una 
 | 0 Diagnostico | NO APROBADA: revocacion Atlas pendiente |
 | 1 Backend base | ✅ código |
 | 2 Core | Implementada; unitarias y pruebas de integracion aprobadas |
-| 3 Inventario | En curso; lote/serie integrado y conteo físico parcial; NO APROBADA hasta reconciliar conteos de productos por lote/serie y pasar QA global |
+| 3 Inventario | Aprobada en código y QA; lotes/series integrados y conteo físico conciliable |
 | 4 Compras/Ventas | Implementada; unitarias y pruebas de integracion aprobadas |
 | 5 Finanzas/Reportes | Implementada; unitarias y pruebas de integracion aprobadas |
 | 6 CRM/RRHH/Produccion | Implementada; unitarias y pruebas de integracion aprobadas |

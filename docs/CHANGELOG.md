@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## Seguimiento FASE 3 — 2026-09-24 (conteo físico trazable)
+- Conteos capturan snapshot de lotes/series y permiten declarar cantidades e identificadores encontrados; los lotes también concilian vencimientos.
+- La publicación compara stock y detalle actuales contra el snapshot, rechaza cambios concurrentes, actualiza saldo agregado y trazabilidad con compensaciones, y guarda el detalle en el movimiento idempotente.
+- QA dirigida: 4 suites, 104/104 pruebas aprobadas. Regresión completa: 29/29 suites y 461/461 pruebas aprobadas; líneas 83.41%, ramas 62.10%, funciones 85.45%. Fase 3 aprobada en código y QA.
+
 ## Seguimiento FASE 3 — 2026-09-24 (trazabilidad y conteo físico)
 - Productos permiten definir control `none`, `lot` o `serial`; se impide cambiarlo cuando ya hay stock, movimientos o trazabilidad.
 - Movimientos guardan identificadores trazables y el endpoint `GET /inventory/traceability` consulta los registros activos del tenant.

@@ -411,8 +411,9 @@ const inventoryService = {
   async adjustment(data, actor) {
     const companyId = requireCompany(actor);
     const product = await loadActiveProduct(data.productId, companyId);
-    if (trackingMode(product) !== 'none') {
-      throw ApiError.conflict('Tracked products must be adjusted through a traceable physical count.');
+    const mode = trackingMode(product);
+    if (mode !== 'none' && (!Array.isArray(data.expectedTraceability) || !Array.isArray(data.traceability))) {
+      throw ApiError.conflict('Los productos trazables sólo se ajustan mediante un conteo físico con detalle.');
     }
     const warehouse = await loadActiveWarehouse(data.warehouseId, companyId);
     const target = data.quantity;
@@ -423,17 +424,41 @@ const inventoryService = {
     if (data.expectedQuantity !== undefined && before !== data.expectedQuantity) {
       throw ApiError.conflict('El stock cambió desde que se inició el inventario físico. Vuelva a contar el producto.');
     }
+    let trackedChanges = null;
+    if (mode !== 'none') {
+      const desired = data.traceability.map((item) => ({
+        identifier: item.identifier.trim().toUpperCase(),
+        quantity: item.quantity,
+        ...(item.expiryDate ? { expiryDate: item.expiryDate } : {}),
+      }));
+      if (target === 0) {
+        if (desired.length) throw ApiError.unprocessable('Un conteo en cero no puede incluir lotes o series.');
+      } else {
+        validateTraceability(product, { quantity: target, traceability: desired });
+      }
+      const currentTrace = await inventoryTraceRepository.listForProduct(companyId, product._id, {
+        warehouseId: warehouse._id, quantity: { $gt: 0 },
+      });
+      if (!sameTraceability(currentTrace, data.expectedTraceability)) {
+        throw ApiError.conflict('La trazabilidad cambió desde que se inició el inventario físico. Vuelva a contar el producto.');
+      }
+      if (target === before && sameTraceability(desired, data.expectedTraceability)) return null;
+      trackedChanges = await applyTraceCount(product, companyId, warehouse._id, data.expectedTraceability, desired);
+    }
+    if (target === before && mode === 'none') return null;
     const delta = target - before;
 
     let afterDoc = null;
     if (current) {
       afterDoc = await stockLevelRepository.setExact(key, before, target);
       if (!afterDoc) {
+        if (trackedChanges) await rollbackTraceCount(product, companyId, warehouse._id, trackedChanges);
         throw ApiError.conflict('El stock cambió durante la operación. Intente de nuevo.');
       }
     } else if (target > 0) {
       afterDoc = await stockLevelRepository.createIfAbsent({ ...key, quantity: target });
       if (!afterDoc) {
+        if (trackedChanges) await rollbackTraceCount(product, companyId, warehouse._id, trackedChanges);
         throw ApiError.conflict('El stock cambió durante la operación. Intente de nuevo.');
       }
     }
@@ -452,6 +477,7 @@ const inventoryService = {
         reason: data.reason,
         reference: data.reference || null,
         idempotencyKey: data.idempotencyKey || null,
+        traceability: mode === 'none' ? [] : data.traceability,
         userId: actor.userId || null,
       });
     } catch (err) {
@@ -465,6 +491,7 @@ const inventoryService = {
           logger.error({ err: compErr.message }, 'Compensación de ajuste (borrado) falló');
         });
       }
+      if (trackedChanges) await rollbackTraceCount(product, companyId, warehouse._id, trackedChanges);
       throw err;
     }
   },
@@ -541,5 +568,70 @@ const inventoryService = {
     }
   },
 };
+
+function traceMap(items) {
+  return new Map(items.map((item) => [item.identifier.trim().toUpperCase(), item]));
+}
+
+function sameTraceability(actual, expected) {
+  const left = [...actual].sort((a, b) => a.identifier.localeCompare(b.identifier));
+  const right = [...expected].sort((a, b) => a.identifier.localeCompare(b.identifier));
+  return left.length === right.length && left.every((item, index) =>
+    item.identifier === right[index].identifier && item.quantity === right[index].quantity &&
+    String(item.expiryDate || '') === String(right[index].expiryDate || '')
+  );
+}
+
+async function applyTraceCount(product, companyId, warehouseId, before, after) {
+  const changes = { lots: [], removedSerials: [], addedSerials: [] };
+  try {
+    if (trackingMode(product) === 'lot') {
+      const oldLots = traceMap(before);
+      const newLots = traceMap(after);
+      for (const identifier of new Set([...oldLots.keys(), ...newLots.keys()])) {
+        const previous = oldLots.get(identifier);
+        const next = newLots.get(identifier);
+        const oldQuantity = previous?.quantity || 0;
+        const newQuantity = next?.quantity || 0;
+        const delta = newQuantity - oldQuantity;
+        const previousExpiryDate = previous?.expiryDate || null;
+        const nextExpiryDate = next?.expiryDate || null;
+        const expiryChanged = String(previousExpiryDate || '') !== String(nextExpiryDate || '');
+        if (!delta && !expiryChanged) continue;
+        const changed = await inventoryTraceRepository.setLotState(
+          companyId, product._id, warehouseId, identifier, oldQuantity, previousExpiryDate, newQuantity, nextExpiryDate
+        );
+        if (!changed) throw ApiError.conflict(`El lote ${identifier} cambió durante el conteo. Vuelva a contar el producto.`);
+        changes.lots.push({ identifier, oldQuantity, newQuantity, previousExpiryDate, nextExpiryDate });
+      }
+    } else {
+      const oldSerials = new Set(before.map((item) => item.identifier));
+      const newSerials = new Set(after.map((item) => item.identifier));
+      const removed = [...oldSerials].filter((serial) => !newSerials.has(serial)).map((identifier) => ({ identifier, quantity: 1 }));
+      const added = [...newSerials].filter((serial) => !oldSerials.has(serial)).map((identifier) => ({ identifier, quantity: 1 }));
+      changes.removedSerials = await takeTrackedStock(product, companyId, warehouseId, removed);
+      changes.addedSerials = await addTrackedStock(product, companyId, warehouseId, added);
+    }
+    return changes;
+  } catch (err) {
+    await rollbackTraceCount(product, companyId, warehouseId, changes);
+    throw err;
+  }
+}
+
+async function rollbackTraceCount(product, companyId, warehouseId, changes) {
+  if (trackingMode(product) === 'lot') {
+    for (const change of [...changes.lots].reverse()) {
+      const restored = await inventoryTraceRepository.setLotState(
+        companyId, product._id, warehouseId, change.identifier,
+        change.newQuantity, change.nextExpiryDate, change.oldQuantity, change.previousExpiryDate
+      );
+      if (!restored) throw ApiError.conflict(`No fue posible compensar el lote ${change.identifier}; requiere revisión.`);
+    }
+    return;
+  }
+  if (changes.addedSerials.length) await reverseTrackedEntry(product, companyId, warehouseId, changes.addedSerials);
+  if (changes.removedSerials.length) await restoreTrackedStock(product, companyId, warehouseId, changes.removedSerials);
+}
 
 module.exports = inventoryService;

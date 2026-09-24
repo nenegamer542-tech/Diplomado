@@ -2,10 +2,18 @@
 
 const mongoose = require('mongoose');
 
+const traceabilitySchema = new mongoose.Schema({
+  identifier: { type: String, required: true, trim: true, uppercase: true, maxlength: 64 },
+  quantity: { type: Number, required: true, min: 0 },
+  expiryDate: { type: Date, default: null },
+}, { _id: false, strict: true });
+
 const countLineSchema = new mongoose.Schema({
   productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
   expectedQuantity: { type: Number, required: true, min: 0 },
   countedQuantity: { type: Number, required: true, min: 0 },
+  expectedTraceability: { type: [traceabilitySchema], default: [] },
+  countedTraceability: { type: [traceabilitySchema], default: [] },
   applied: { type: Boolean, default: false },
   movementId: { type: mongoose.Schema.Types.ObjectId, ref: 'InventoryMovement', default: null },
 }, { strict: true });

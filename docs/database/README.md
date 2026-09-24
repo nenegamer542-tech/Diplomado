@@ -51,9 +51,9 @@ Campos: `companyId`, `type: ENTRY|EXIT|ADJUSTMENT|TRANSFER`, `productId`, `wareh
 Índices: `{companyId:1, createdAt:-1}` · `{companyId:1, productId:1, createdAt:-1}` · `{companyId:1, warehouseId:1, createdAt:-1}` · `{companyId:1, type:1, createdAt:-1}`.
 La API **no** expone PATCH/DELETE: el saldo se reconstruye desde `quantityBefore/After`.
 
-Los productos añaden `trackingMode: none|lot|serial`. La colección `inventory_traces` mantiene cantidades por lote y almacén, o una fila por serie con almacén y cantidad activa/inactiva. Los movimientos conservan el snapshot `traceability[]`; su índice parcial único tenant-scoped sobre `idempotencyKey` soporta la publicación reanudable de conteos.
+Los productos añaden `trackingMode: none|lot|serial`. La colección MongoDB `inventorytraces` mantiene cantidades por lote y almacén, o una fila por serie con almacén y cantidad activa/inactiva. Los movimientos conservan el snapshot `traceability[]`; su índice parcial único tenant-scoped sobre `idempotencyKey` soporta la publicación reanudable de conteos.
 
-La colección `inventory_counts` persiste `companyId`, código, almacén, estado (`DRAFT|POSTING|PARTIAL|POSTED`) y líneas con cantidades esperadas/contadas, aplicación y movimiento generado. Los conteos actuales se limitan a productos no trazables; no publicar conteos de lotes/series hasta implementar una conciliación que valide y aplique tanto el agregado como cada identificador.
+La colección MongoDB `inventorycounts` persiste `companyId`, código, almacén, estado (`DRAFT|POSTING|PARTIAL|POSTED`) y líneas con cantidades y trazabilidad esperadas/contadas, aplicación y movimiento generado. La publicación compara el snapshot de stock y de lote/serie; un cambio posterior devuelve conflicto para volver a contar. El movimiento de ajuste guarda el detalle contado.
 
 ### `suppliers` — proveedores (FASE 4)
 Campos: `companyId`, `code` (mayúsculas), `name`, `contactName`, `email`, `phone`, `address`, `notes`, `status: active|inactive`, timestamps.

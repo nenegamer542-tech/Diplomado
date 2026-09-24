@@ -4,10 +4,15 @@ const { z } = require('zod');
 const { objectId, paginationQuery } = require('../../utils/validators');
 
 const quantity = z.number().min(0).max(1000000000);
+const traceability = z.array(z.object({
+  identifier: z.string().trim().min(1).max(64).regex(/^[A-Za-z0-9._/-]+$/),
+  quantity: quantity,
+  expiryDate: z.coerce.date().optional(),
+}).strict()).max(10000);
 const CREATE_FIELDS = ['warehouseId', 'lines'];
 const createSchema = z.object({
   warehouseId: objectId,
-  lines: z.array(z.object({ productId: objectId, countedQuantity: quantity }).strict()).min(1).max(500),
+  lines: z.array(z.object({ productId: objectId, countedQuantity: quantity, traceability: traceability.optional() }).strict()).min(1).max(500),
 }).strict().refine((body) => new Set(body.lines.map((line) => line.productId)).size === body.lines.length, {
   message: 'Un producto sólo puede aparecer una vez por conteo.',
   path: ['lines'],

@@ -7,6 +7,7 @@ const stockRepository = require('./stock_level.repository');
 const productRepository = require('../products/product.repository');
 const warehouseRepository = require('../warehouses/warehouse.repository');
 const inventoryService = require('./inventory.service');
+const inventoryTraceRepository = require('./inventory_trace.repository');
 const { nextSequence, formatCode } = require('../../common/sequence');
 
 const service = {
@@ -28,11 +29,20 @@ const service = {
       const product = await productRepository.findById(line.productId, { companyId });
       if (!product) throw ApiError.notFound('Recurso no encontrado.');
       if (product.status !== 'active') throw ApiError.conflict('El producto está inactivo.');
-      if ((product.trackingMode || 'none') !== 'none') {
-        throw ApiError.conflict('El conteo de productos por lote/serie debe incluir el detalle trazable; use el proceso de ajuste trazable.');
-      }
       const stock = await stockRepository.getOne(companyId, warehouse._id, product._id);
-      lines.push({ productId: product._id, expectedQuantity: stock?.quantity || 0, countedQuantity: line.countedQuantity });
+      const trackingMode = product.trackingMode || 'none';
+      const expectedTraceability = trackingMode === 'none' ? [] : await inventoryTraceRepository.listForProduct(
+        companyId, product._id, { warehouseId: warehouse._id, quantity: { $gt: 0 } }
+      );
+      const countedTraceability = normalizeTraceability(line.traceability || []);
+      validateCountedTraceability(trackingMode, line.countedQuantity, countedTraceability);
+      lines.push({
+        productId: product._id,
+        expectedQuantity: stock?.quantity || 0,
+        countedQuantity: line.countedQuantity,
+        expectedTraceability: expectedTraceability.map(({ identifier, quantity, expiryDate }) => ({ identifier, quantity, expiryDate })),
+        countedTraceability,
+      });
     }
 
     const sequence = await nextSequence(companyId, 'inventory_counts');
@@ -66,18 +76,18 @@ const service = {
           continue;
         }
 
-        if (line.countedQuantity !== line.expectedQuantity) {
-          const movement = await inventoryService.adjustment({
+        const movement = await inventoryService.adjustment({
             productId: line.productId,
             warehouseId: count.warehouseId,
             quantity: line.countedQuantity,
             expectedQuantity: line.expectedQuantity,
+            expectedTraceability: line.expectedTraceability,
+            traceability: line.countedTraceability,
             reason: `Inventario físico ${count.code}`,
             reference,
             idempotencyKey,
           }, { companyId, userId });
-          line.movementId = movement._id;
-        }
+        if (movement) line.movementId = movement._id;
         line.applied = true;
         await count.save();
       }
@@ -91,5 +101,33 @@ const service = {
     }
   },
 };
+
+function normalizeTraceability(items) {
+  return items.map((item) => ({
+    identifier: item.identifier.trim().toUpperCase(),
+    quantity: item.quantity,
+    ...(item.expiryDate ? { expiryDate: item.expiryDate } : {}),
+  }));
+}
+
+function validateCountedTraceability(mode, countedQuantity, items) {
+  if (mode === 'none') {
+    if (items.length) throw ApiError.unprocessable('Este producto no utiliza lote ni serie.');
+    return;
+  }
+  if (mode === 'lot') {
+    if (items.some((item) => item.quantity <= 0)) throw ApiError.unprocessable('Cada lote contado debe tener cantidad mayor que cero.');
+    if (new Set(items.map((item) => item.identifier)).size !== items.length) throw ApiError.unprocessable('No repita lotes en una línea de conteo.');
+    const total = items.reduce((sum, item) => sum + item.quantity, 0);
+    if (Math.abs(total - countedQuantity) > 1e-8) throw ApiError.unprocessable('La suma de los lotes debe coincidir con la cantidad contada.');
+    return;
+  }
+  if (mode === 'serial') {
+    if (!Number.isInteger(countedQuantity) || items.length !== countedQuantity || items.some((item) => item.quantity !== 1)) {
+      throw ApiError.unprocessable('Indique una serie única por cada unidad contada.');
+    }
+    if (new Set(items.map((item) => item.identifier)).size !== items.length) throw ApiError.unprocessable('No repita series en una línea de conteo.');
+  }
+}
 
 module.exports = service;

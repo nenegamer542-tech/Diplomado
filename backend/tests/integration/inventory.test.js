@@ -15,6 +15,8 @@
 const request = require('supertest');
 const { describeIfDb, connectTestDb, closeTestDb, app } = require('../helpers/setup');
 const { createTenant, createUser, login, auth } = require('../helpers/fixtures');
+const InventoryTrace = require('../../src/modules/inventory/inventory_trace.model');
+const inventoryService = require('../../src/modules/inventory/inventory.service');
 
 /** Espera (con reintentos) a que la auditoría no bloqueante se asiente. */
 async function waitFor(check, { timeoutMs = 2000, stepMs = 100 } = {}) {
@@ -684,5 +686,96 @@ describeIfDb('API /products, /warehouses e /inventory (integración FASE 3)', ()
     expect(stalePost.status).toBe(409);
     const staleDetail = await request(app).get(`/api/v1/inventory/counts/${stale.body.data._id}`).set(auth(adminAToken));
     expect(staleDetail.body.data.status).toBe('PARTIAL');
+  });
+
+  test('inventario físico concilia lotes y series con el stock agregado', async () => {
+    const lotProduct = await request(app).post('/api/v1/products').set(auth(adminAToken)).send({
+      sku: 'COUNT-LOT', name: 'Conteo por lote', trackingMode: 'lot',
+    });
+    const lotEntry = await request(app).post('/api/v1/inventory/entries').set(auth(almacenToken)).send({
+      productId: lotProduct.body.data._id, warehouseId: warehouseMainId, quantity: 5,
+      traceability: [{ identifier: 'COUNT-A', quantity: 3 }, { identifier: 'COUNT-B', quantity: 2 }],
+    });
+    expect(lotEntry.status).toBe(201);
+
+    const invalidLotCount = await request(app).post('/api/v1/inventory/counts').set(auth(adminAToken)).send({
+      warehouseId: warehouseMainId,
+      lines: [{ productId: lotProduct.body.data._id, countedQuantity: 4, traceability: [{ identifier: 'COUNT-A', quantity: 3 }] }],
+    });
+    expect(invalidLotCount.status).toBe(422);
+
+    const lotCount = await request(app).post('/api/v1/inventory/counts').set(auth(adminAToken)).send({
+      warehouseId: warehouseMainId,
+      lines: [{ productId: lotProduct.body.data._id, countedQuantity: 4, traceability: [
+        { identifier: 'COUNT-A', quantity: 1, expiryDate: '2028-01-01' }, { identifier: 'COUNT-C', quantity: 3 },
+      ] }],
+    });
+    expect(lotCount.status).toBe(201);
+    expect(lotCount.body.data.lines[0].expectedTraceability).toHaveLength(2);
+    const lotPosted = await request(app).post(`/api/v1/inventory/counts/${lotCount.body.data._id}/post`).set(auth(adminAToken)).send({});
+    expect(lotPosted.status).toBe(200);
+    expect(lotPosted.body.data.lines[0].movementId).toBeTruthy();
+    const lotMovement = await request(app).get(`/api/v1/inventory/movements/${lotPosted.body.data.lines[0].movementId}`).set(auth(adminAToken));
+    expect(lotMovement.body.data.traceability).toEqual(expect.arrayContaining([
+      expect.objectContaining({ identifier: 'COUNT-A', quantity: 1 }),
+      expect.objectContaining({ identifier: 'COUNT-C', quantity: 3 }),
+    ]));
+    const rawCountedLots = await InventoryTrace.find({ companyId: tenantA.company._id, productId: lotProduct.body.data._id }).lean();
+    const rawPositiveLots = await InventoryTrace.find({ companyId: tenantA.company._id, productId: lotProduct.body.data._id, quantity: { $gt: 0 } }).lean();
+    expect(rawPositiveLots.map(({ identifier, quantity }) => ({ identifier, quantity }))).toEqual(expect.arrayContaining([
+      { identifier: 'COUNT-A', quantity: 1 }, { identifier: 'COUNT-C', quantity: 3 },
+    ]));
+    expect(rawCountedLots.map(({ identifier, quantity }) => ({ identifier, quantity }))).toEqual(expect.arrayContaining([
+      { identifier: 'COUNT-A', quantity: 1 }, { identifier: 'COUNT-C', quantity: 3 },
+    ]));
+    const lots = await inventoryService.listTraceability(tenantA.company._id, { productId: lotProduct.body.data._id });
+    expect(lots.filter((item) => item.quantity > 0).map(({ identifier, quantity }) => ({ identifier, quantity }))).toEqual([
+      { identifier: 'COUNT-A', quantity: 1 }, { identifier: 'COUNT-C', quantity: 3 },
+    ]);
+    expect(lots.find((item) => item.identifier === 'COUNT-A').expiryDate.toISOString()).toContain('2028-01-01');
+
+    const serialProduct = await request(app).post('/api/v1/products').set(auth(adminAToken)).send({
+      sku: 'COUNT-SERIAL', name: 'Conteo por serie', trackingMode: 'serial',
+    });
+    const serialEntry = await request(app).post('/api/v1/inventory/entries').set(auth(almacenToken)).send({
+      productId: serialProduct.body.data._id, warehouseId: warehouseMainId, quantity: 2,
+      traceability: [{ identifier: 'COUNT-S1', quantity: 1 }, { identifier: 'COUNT-S2', quantity: 1 }],
+    });
+    expect(serialEntry.status).toBe(201);
+    const serialCount = await request(app).post('/api/v1/inventory/counts').set(auth(adminAToken)).send({
+      warehouseId: warehouseMainId,
+      lines: [{ productId: serialProduct.body.data._id, countedQuantity: 2, traceability: [
+        { identifier: 'COUNT-S2', quantity: 1 }, { identifier: 'COUNT-S3', quantity: 1 },
+      ] }],
+    });
+    expect(serialCount.status).toBe(201);
+    const serialPosted = await request(app).post(`/api/v1/inventory/counts/${serialCount.body.data._id}/post`).set(auth(adminAToken)).send({});
+    expect(serialPosted.status).toBe(200);
+    const serials = await inventoryService.listTraceability(tenantA.company._id, { productId: serialProduct.body.data._id });
+    expect(serials.filter((item) => item.quantity > 0).map((item) => item.identifier).sort()).toEqual(['COUNT-S2', 'COUNT-S3']);
+    const serialStock = await request(app).get(`/api/v1/inventory/stock?productId=${serialProduct.body.data._id}&warehouseId=${warehouseMainId}`).set(auth(adminAToken));
+    expect(serialStock.body.data[0].quantity).toBe(2);
+  });
+
+  test('conteo trazable rechaza publicar si cambió el detalle desde el snapshot', async () => {
+    const product = await request(app).post('/api/v1/products').set(auth(adminAToken)).send({
+      sku: 'COUNT-STALE-LOT', name: 'Lote concurrente', trackingMode: 'lot',
+    });
+    await request(app).post('/api/v1/inventory/entries').set(auth(almacenToken)).send({
+      productId: product.body.data._id, warehouseId: warehouseMainId, quantity: 4,
+      traceability: [{ identifier: 'STALE-A', quantity: 4 }],
+    });
+    const count = await request(app).post('/api/v1/inventory/counts').set(auth(adminAToken)).send({
+      warehouseId: warehouseMainId,
+      lines: [{ productId: product.body.data._id, countedQuantity: 4, traceability: [{ identifier: 'STALE-A', quantity: 4 }] }],
+    });
+    await request(app).post('/api/v1/inventory/exits').set(auth(almacenToken)).send({
+      productId: product.body.data._id, warehouseId: warehouseMainId, quantity: 1,
+      traceability: [{ identifier: 'STALE-A', quantity: 1 }],
+    });
+    const post = await request(app).post(`/api/v1/inventory/counts/${count.body.data._id}/post`).set(auth(adminAToken)).send({});
+    expect(post.status).toBe(409);
+    const detail = await request(app).get(`/api/v1/inventory/counts/${count.body.data._id}`).set(auth(adminAToken));
+    expect(detail.body.data.status).toBe('PARTIAL');
   });
 });

@@ -35,6 +35,25 @@ class InventoryTraceRepository extends BaseRepository {
     ).lean();
   }
 
+  async setLotState(companyId, productId, warehouseId, identifier, expectedQuantity, expectedExpiryDate, quantity, expiryDate) {
+    this._guard({ companyId });
+    const filter = { companyId, productId, warehouseId, kind: 'lot', identifier, quantity: expectedQuantity };
+    if (expectedQuantity > 0) filter.expiryDate = expectedExpiryDate || null;
+    try {
+      return await this.model.findOneAndUpdate(
+        filter,
+        {
+          $set: { quantity, expiryDate: expiryDate || null },
+          ...(expectedQuantity === 0 ? { $setOnInsert: { companyId, productId, warehouseId, kind: 'lot', identifier } } : {}),
+        },
+        { upsert: expectedQuantity === 0 && quantity > 0, new: true, runValidators: true }
+      ).lean();
+    } catch (err) {
+      if (err?.code === 11000) return null;
+      throw err;
+    }
+  }
+
   async createSerial(data) {
     this._guard(data);
     return this.model.create({ ...data, kind: 'serial', quantity: 1 });
