@@ -6,7 +6,7 @@ Se implementó trazabilidad por lote y serie dentro de inventario, propagada a l
 
 Fecha de revision: 2026-09-24
 Repositorio: nenegamer542-tech/Diplomado
-Rama local y remota: `main`, HEAD `942bea9` (`audit: document ERP state and validate QA`); la historia publicada se reescribio para retirar las credenciales del commit anterior.
+Rama local: `main`, HEAD `0c0b847` (`inventory: reconcile physical counts for lots and serials`). El diagnóstico inicial se realizó sobre `942bea9`; la historia publicada se reescribió para retirar las credenciales del commit anterior.
 Alcance: inspeccion estatica de backend, frontend, configuracion y documentacion; pruebas unitarias e integracion ejecutadas y exportacion web completada. La inspeccion visual y E2E frontend no se pudieron ejecutar porque no hay navegador automatizable instalado.
 
 ## Resumen
