@@ -1,5 +1,15 @@
 # Matriz de pruebas QA (FASE 2 + 3 + 4 + 5 + 6)
 
+## FASE 2 — Datos maestros (seguimiento)
+
+| ID | Módulo | Proceso | Entrada | Resultado esperado | Resultado real | Estado |
+|---|---|---|---|---|---|---|
+| MD-CATALOG-API-01 | Master Data | Crear/listar catálogos | Tipos permitidos, código duplicado, tipo/campos inválidos | Unicidad por empresa, reglas por tipo, tenant del token y validación estricta | Integración `master-data.test.js` aprobada | APROBADO |
+| MD-REF-TENANT-01 | Productos | Enlazar maestro | ID propio, ID de tipo incorrecto o de otra empresa | Sólo aceptar registro activo del mismo tenant; snapshots coherentes | Integración `master-data.test.js` aprobada | APROBADO |
+| MD-CURRENCY-01 | Core/Finanzas | Compartir moneda | Empresa nueva y cuenta con moneda del catálogo | Moneda base aprovisionada; moneda en uso no borrable | Integraciones master data y companies aprobadas | APROBADO |
+| MD-RBAC-01 | Seguridad | Permisos catálogo | Roles semilla / usuario sin escritura | Lectura operativa; escritura restringida a administrador | Unitarias de permisos y API aprobadas | APROBADO |
+| MD-MIGRATION-01 | Migración | Backfill legacy | Empresas, productos y cuentas existentes | Crear enlaces de forma idempotente y conservar snapshots | Script implementado; ejecución sólo pendiente en cada entorno destino | PENDIENTE |
+
 ## Seguimiento actual de FASE 1 (2026-09-24)
 
 | ID | Módulo | Proceso | Entrada | Resultado esperado | Resultado real | Estado |

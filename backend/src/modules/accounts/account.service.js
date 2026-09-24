@@ -4,6 +4,15 @@ const ApiError = require('../../utils/ApiError');
 const accountRepository = require('./account.repository');
 const incomeRepository = require('../incomes/income.repository');
 const expenseRepository = require('../expenses/expense.repository');
+const masterDataRepository = require('../master-data/master_data.repository');
+
+async function resolveCurrency(data, companyId) {
+  if (!data.currencyId) return data;
+  const currency = await masterDataRepository.findById(data.currencyId, { companyId });
+  if (!currency || currency.type !== 'currency') throw ApiError.notFound('Recurso no encontrado.');
+  if (currency.status !== 'active') throw ApiError.conflict('La moneda está inactiva.');
+  return { ...data, currency: currency.code, currencyId: currency._id };
+}
 
 /**
  * Servicio de CUENTAS financieras (FASE 5) — multiempresa estricto.
@@ -38,6 +47,7 @@ const accountService = {
   },
 
   async create(data, companyId) {
+    data = await resolveCurrency(data, companyId);
     const code = String(data.code).toUpperCase();
     const existing = await accountRepository.findByCode(companyId, code);
     if (existing) {
@@ -52,6 +62,11 @@ const accountService = {
 
     const patch = { ...data };
     delete patch.balance; // el saldo nunca se edita desde el cliente
+    if (patch.currencyId) {
+      Object.assign(patch, await resolveCurrency(patch, companyId));
+    } else if (account.currencyId && patch.currency && patch.currency !== account.currency) {
+      throw ApiError.unprocessable('Seleccione una moneda del catálogo mediante currencyId.');
+    }
     if (patch.code) {
       const code = String(patch.code).toUpperCase();
       const existing = await accountRepository.findByCode(companyId, code);

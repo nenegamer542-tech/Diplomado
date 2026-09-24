@@ -275,6 +275,10 @@ async function ensureDemoTenant(password) {
         isSystem: true,
         status: 'active',
       });
+    } else if (role.isSystem) {
+      // Agrega permisos de esta versión sin quitar permisos ya existentes.
+      role.permissions = [...new Set([...role.permissions, ...cfg.permissions])];
+      await role.save();
     }
     roles[code] = role;
   }

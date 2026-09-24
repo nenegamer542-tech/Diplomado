@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## Seguimiento FASE 2 — 2026-09-24
+- Añadidos catálogos maestros por empresa para categorías, marcas, unidades, monedas e impuestos con permisos RBAC, validación estricta, unicidad tenant-scoped y bloqueo de borrado cuando hay referencias.
+- Productos validan referencias del mismo tenant y conservan snapshots compatibles; las cuentas financieras aceptan moneda del catálogo. El alta de empresa aprovisiona su moneda base.
+- Añadida migración idempotente para enlazar los productos/cuentas/empresas existentes y completar permisos de roles de sistema; la semilla también incorpora permisos nuevos sin retirar los existentes.
+- QA específico: 42/42 pruebas objetivo aprobadas. Falta terminar la regresión completa antes de declarar la fase aprobada.
+
 ## Seguimiento FASE 1 — 2026-09-24
 - Refresh tokens ahora incluyen un identificador aleatorio; se persiste únicamente su hash en `sessions` con vencimiento TTL.
 - La rotación consume la sesión con una actualización atómica y rechaza la reutilización del token anterior (`SESSION_REVOKED`). Logout y cambio de contraseña mantienen la revocación global por `tokenVersion`.

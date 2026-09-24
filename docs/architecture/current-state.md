@@ -17,7 +17,7 @@ Hay modulos de core, inventario, compras/ventas, finanzas/reportes, CRM, RRHH y 
 |---|---|---|---|---|---|
 | Arquitectura | Backend por capas y modulos; Expo/RN Web; 305 rutas remotas | Evolucionar el repo existente | Ampliar solo segun procesos priorizados | Fases de codigo pueden confundirse con fases aprobadas | Alta |
 | Core y seguridad | Auth, usuarios, empresas, sucursales, roles, permisos, auditoria y guards tenant presentes; integracion cubre login, RBAC e IDOR | Aislamiento y permisos verificados en cada endpoint | Auditoria especializada y pruebas adicionales de concurrencia | Ruta sin guard podria permitir acceso indebido | Critica |
-| Master data | Productos, clientes, proveedores y almacenes | Maestros compartidos y reutilizables | No hay modulos dedicados para categorias, marcas, unidades, impuestos, monedas ni centros de costo/periodos fiscales | Campos libres pueden divergir entre modulos | Alta |
+| Master data | Productos, clientes, proveedores y almacenes; catálogos tenant-scoped para categorías, marcas, unidades, monedas e impuestos implementados en Fase 2 | Maestros compartidos y reutilizables | Centros de costo/periodos fiscales pendientes; migración de catálogos históricos debe ejecutarse por entorno | Datos legados siguen como snapshots hasta correr backfill | Alta |
 | Inventario | Stock, movimientos, ajustes, transferencias; conectado a aprobacion de ordenes y produccion | Kardex y procesos completos | No aparecen lotes, series ni inventario fisico; validar alertas/minimos/maximos | Trazabilidad parcial | Alta |
 | Compras/ventas | Proveedores, clientes y ordenes; aprobacion genera movimientos con compensacion | Procure-to-pay y order-to-cash completos | No se observan cotizaciones, recepciones parciales, facturas, pagos, devoluciones ni CxP/CxC automaticas | Proceso comercial y financiero incompleto | Alta |
 | Finanzas/BI | Cuentas, ingresos, gastos, presupuestos y reportes | Integracion financiera desde compras/ventas | Integracion automatica con ordenes no observada; cobertura no medida | Reportes pueden estar desconectados de compras/ventas | Alta |
@@ -71,3 +71,7 @@ Se incorporó persistencia de sesiones de refresh: cada token lleva un `jti` ale
 ## Estado de Fase 0
 
 Diagnostico y matriz creados; KPI corregido; 27/27 suites y 445/445 pruebas aprobadas; cobertura de lineas 87.97%. **FASE 0: NO APROBADA** hasta revocar externamente la credencial expuesta. La rama publica ya esta saneada; queda una copia local recuperable y la purga fue bloqueada por auto-review. La validacion visual de Fase 7 sigue pendiente por falta de navegador.
+
+## Seguimiento de Fase 2 — 2026-09-24
+
+La implementación agrega `/master-data` con catálogos tipados y aislamiento por `companyId` del token. Productos validan referencias de categoría, marca, unidad e impuesto; empresas y cuentas enlazan moneda. Las empresas existentes requieren ejecutar `npm run migrate:master-data` desde `backend/`; el script es idempotente, no borra snapshots y actualiza permisos de roles de sistema existentes. En esta revisión dirigida pasaron 3 suites/42 pruebas; falta la regresión completa para la decisión final de fase.

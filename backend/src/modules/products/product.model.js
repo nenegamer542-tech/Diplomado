@@ -22,7 +22,12 @@ const productSchema = new mongoose.Schema(
     name: { type: String, required: 'El nombre del producto es obligatorio.', trim: true, maxlength: 120 },
     barcode: { type: String, trim: true, maxlength: 64, default: null },
     description: { type: String, trim: true, maxlength: 500, default: null },
-    category: { type: String, trim: true, maxlength: 60, default: null },
+    categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'MasterData', default: null },
+    brandId: { type: mongoose.Schema.Types.ObjectId, ref: 'MasterData', default: null },
+    unitId: { type: mongoose.Schema.Types.ObjectId, ref: 'MasterData', default: null },
+    taxId: { type: mongoose.Schema.Types.ObjectId, ref: 'MasterData', default: null },
+    category: { type: String, trim: true, maxlength: 100, default: null },
+    brand: { type: String, trim: true, maxlength: 100, default: null },
     unit: { type: String, trim: true, maxlength: 20, default: 'pza' },
     costPrice: { type: Number, min: [0, 'El precio de costo no puede ser negativo.'], default: 0 },
     salePrice: { type: Number, min: [0, 'El precio de venta no puede ser negativo.'], default: 0 },
@@ -36,5 +41,9 @@ const productSchema = new mongoose.Schema(
 productSchema.index({ companyId: 1, sku: 1 }, { unique: true });
 productSchema.index({ companyId: 1, status: 1 });
 productSchema.index({ companyId: 1, name: 1 });
+productSchema.index({ companyId: 1, categoryId: 1 });
+productSchema.index({ companyId: 1, brandId: 1 });
+productSchema.index({ companyId: 1, unitId: 1 });
+productSchema.index({ companyId: 1, taxId: 1 });
 
 module.exports = mongoose.model('Product', productSchema);

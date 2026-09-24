@@ -7,7 +7,7 @@ const { objectId, paginationQuery } = require('../../utils/validators');
  * Campos permitidos en POST/PATCH. `balance` NUNCA se acepta del cliente:
  * lo gestiona el servidor con incremento atómico (ADR-011).
  */
-const CREATE_FIELDS = ['code', 'name', 'type', 'currency', 'status', 'notes'];
+const CREATE_FIELDS = ['code', 'name', 'type', 'currency', 'currencyId', 'status', 'notes'];
 
 const createSchema = z
   .object({
@@ -25,6 +25,7 @@ const createSchema = z
       .regex(/^[A-Za-z]{3}$/, 'La moneda debe ser un código ISO de 3 letras (p.ej. USD, MXN).')
       .transform((v) => v.toUpperCase())
       .optional(),
+    currencyId: objectId.optional(),
     status: z.enum(['active', 'inactive']).optional(),
     notes: z.string().trim().max(500).optional(),
   })

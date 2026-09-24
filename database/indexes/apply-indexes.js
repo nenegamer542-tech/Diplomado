@@ -17,6 +17,7 @@ const Role = require('../../backend/src/modules/roles/role.model');
 const User = require('../../backend/src/modules/users/user.model');
 const AuditLog = require('../../backend/src/modules/audit/audit.model');
 const Product = require('../../backend/src/modules/products/product.model');
+const MasterData = require('../../backend/src/modules/master-data/master_data.model');
 const Warehouse = require('../../backend/src/modules/warehouses/warehouse.model');
 const StockLevel = require('../../backend/src/modules/inventory/stock_level.model');
 const InventoryMovement = require('../../backend/src/modules/inventory/inventory_movement.model');
@@ -41,6 +42,7 @@ const MODELS = [
   User,
   AuditLog,
   Product,
+  MasterData,
   Warehouse,
   StockLevel,
   InventoryMovement,

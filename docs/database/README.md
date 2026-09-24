@@ -4,6 +4,9 @@ Sufijo de base recomendado: `erp` (dev), `erp_test` (pruebas, descartable).
 
 ## Colecciones (FASE 1 + 2 + 3 + 4 + 5 + 6)
 
+### `master_data` (FASE 2)
+Catálogo compartido y tipado por empresa: `category`, `brand`, `unit`, `currency`, `tax`. Campos según tipo: `code`, `name`, `symbol`, `decimalPlaces`, `allowFractions`, `rate`, `status`. Índices: `{companyId:1,type:1,code:1}` **unique** y `{companyId:1,type:1,status:1,name:1}`. Los IDs de producto/finanzas/empresa apuntan a registros del mismo tenant. La migración `npm run migrate:master-data` es idempotente y enlaza snapshots históricos; conserva los campos de texto para compatibilidad. No ejecutarla directamente contra producción sin respaldo y ventana de despliegue.
+
 ### `sessions` (FASE 1)
 Sesiones de refresh con `userId`, `companyId`, `tokenVersion`, `refreshIdHash` (SHA-256; el token nunca se persiste), `expiresAt` y `consumedAt`. La rotación consume el registro atómicamente; hay índice TTL en `expiresAt` y búsqueda por usuario/consumo/expiración.
 
@@ -31,7 +34,7 @@ Campos: `companyId` (`null` = plataforma), `userId`, `userEmail`, `module`, `act
 Inmutabilidad: hooks de Mongoose bloquean updates/borrados (el TTL del servidor no pasa por ellos).
 
 ### `products` — catálogo de productos (FASE 3)
-Campos: `companyId`, `sku` (mayúsculas), `name`, `barcode`, `description`, `category`, `unit`, `costPrice`, `salePrice`, `taxRate`, `minStock`, `status: active|inactive`, timestamps.
+Campos: `companyId`, `sku` (mayúsculas), `name`, `barcode`, `description`, `categoryId/brandId/unitId/taxId` (referencias opcionales a `master_data`), snapshots legados `category/brand/unit/taxRate`, `costPrice`, `salePrice`, `minStock`, `status: active|inactive`, timestamps.
 Índices: `{companyId:1, sku:1}` **unique** · `{companyId:1, status:1}` · `{companyId:1, name:1}`.
 
 ### `warehouses` — almacenes (FASE 3; empresa nace con `MAIN`)

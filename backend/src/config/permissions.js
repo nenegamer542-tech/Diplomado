@@ -23,6 +23,7 @@ const PERMISSIONS = {
   USERS: ['users.read', 'users.create', 'users.update', 'users.delete'],
   ROLES: ['roles.read', 'roles.create', 'roles.update', 'roles.delete'],
   SETTINGS: ['settings.read', 'settings.update'],
+  MASTER_DATA: ['masterdata.read', 'masterdata.create', 'masterdata.update', 'masterdata.delete'],
   NOTIFICATIONS: ['notifications.read', 'notifications.update'],
   AUDIT: ['audit.read'],
 
@@ -186,6 +187,12 @@ const DEFAULT_ROLES = {
     ],
   },
 };
+
+// Los roles operativos consultan maestros compartidos; sólo el administrador
+// de empresa los mantiene (sus permisos proceden de ALL_PERMISSIONS).
+for (const code of ['gerente', 'ventas', 'compras', 'almacen', 'finanzas', 'auditor', 'consulta']) {
+  DEFAULT_ROLES[code].permissions.push('masterdata.read');
+}
 
 function isValidPermission(code) {
   return ALL_PERMISSIONS.includes(code);

@@ -2,7 +2,7 @@
 
 ERP modular multiempresa: **React Native + React Native Web** (Expo) · **Node.js + Express** · **MongoDB Atlas** · roles nativos Android (Kotlin) sólo para funciones puntuales.
 
-> Estado actual: Fases 0-7 implementadas parcialmente en código. QA backend: 28/28 suites y 449/449 pruebas aprobadas; cobertura de líneas 88.09%. La exportación web está aprobada; la inspección visual sigue pendiente por falta de navegador. La Fase 0 continúa NO APROBADA hasta revocar la credencial expuesta históricamente en Atlas. Ver docs/architecture/current-state.md y docs/qa/matriz-pruebas.md.
+> Estado actual: Fases 0-7 implementadas parcialmente en código. Fase 2 agrega catálogos maestros tenant-scoped; ver `docs/qa/matriz-pruebas.md` para el estado de QA vigente. La Fase 0 continúa NO APROBADA hasta revocar la credencial expuesta históricamente en Atlas. Ver docs/architecture/current-state.md.
 
 ## Estructura
 
@@ -19,7 +19,7 @@ diplo/
 │   │   ├── common/       # BaseRepository, errorTranslator, privilege, sequence (contador)
 │   │   ├── middlewares/  # authenticate, authorize, validate, tenant, audit...
 │   │   ├── utils/        # ApiError, tokens, password, pagination, response...
-│   │   ├── modules/      # auth, companies, branches, roles, users, audit, products, warehouses, inventory, suppliers, customers, purchase-orders, sales-orders, accounts, incomes, expenses, budgets, reports, crm, hr, production
+│   │   ├── modules/      # auth, companies, branches, roles, users, audit, master-data, products, warehouses, inventory, suppliers, customers, purchase-orders, sales-orders, accounts, incomes, expenses, budgets, reports, crm, hr, production
 │   │   │   └── <mod>/    # model · repository · service · controller · validation · routes
 │   │   └── scripts/seed.js
 │   └── tests/            # unit/ · integration/ · helpers/
@@ -61,6 +61,7 @@ npm --prefix frontend install
 npm run indexes
 npm run seed              # Super Admin (SEED_ADMIN_EMAIL)
 npm run seed -- --demo    # + Empresa Demo: 10 roles, almacén MAIN, catálogos demo (incl. BOM/empleado/lead FASE 6) y admin (admin@demo.example.com)
+npm run migrate:master-data # enlaza catálogos en empresas existentes; ejecutar una vez por entorno
 
 # 4) Correr
 npm run dev:backend       # API en http://localhost:4000/api/v1  (health: /health)

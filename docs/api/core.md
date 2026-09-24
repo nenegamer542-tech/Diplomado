@@ -28,6 +28,10 @@ Autenticación: `Authorization: Bearer <accessToken>`.
 | GET | `/companies/me` | miembro de empresa | empresa del usuario (header del frontend) |
 | GET/PATCH | `/companies/me/settings` | `settings.read/update` | ajustes acotados al tenant autenticado; PATCH parcial validado |
 | GET/PATCH/DELETE | `/companies/:id` | `companies.read/update/delete` | detalle / editar (plataforma o admin de la empresa) / suspender (plataforma) |
+| GET/POST | `/master-data/:type` | `masterdata.read/create` | catálogos `categories`, `brands`, `units`, `currencies`, `taxes`; companyId se deriva del token |
+| GET/PATCH/DELETE | `/master-data/:type/:id` | `masterdata.read/update/delete` | detalle, edición y borrado protegido si el maestro está en uso |
+
+Los productos pueden recibir `categoryId`, `brandId`, `unitId` y `taxId`; se validan dentro del tenant y deben estar activos. Los campos de texto existentes siguen como snapshots para compatibilidad y se sincronizan al editar el maestro. Las cuentas aceptan `currencyId`; la moneda debe pertenecer al tenant. Cada empresa nueva se aprovisiona con el maestro de su moneda base.
 | GET/POST | `/branches` | `branches.read/create` | sucursales del tenant (`requireTenant`) |
 | GET/PATCH/DELETE | `/branches/:id` | `branches.*` | guardas: predeterminada, en uso, única |
 | GET/POST | `/roles` | `roles.read/create` | roles del tenant; creación con anti-escalada |

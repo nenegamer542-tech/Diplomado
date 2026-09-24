@@ -15,6 +15,16 @@ const {
 } = require('../../src/config/permissions');
 
 describe('Catálogo de permisos', () => {
+  test('maestros: lectura operativa, escritura sólo administrador', () => {
+    expect(PERMISSIONS.MASTER_DATA).toEqual([
+      'masterdata.read', 'masterdata.create', 'masterdata.update', 'masterdata.delete',
+    ]);
+    expect(DEFAULT_ROLES.administrador.permissions).toEqual(expect.arrayContaining(PERMISSIONS.MASTER_DATA));
+    for (const code of ['gerente', 'ventas', 'compras', 'almacen', 'finanzas', 'auditor', 'consulta']) {
+      expect(DEFAULT_ROLES[code].permissions).toContain('masterdata.read');
+      expect(DEFAULT_ROLES[code].permissions).not.toEqual(expect.arrayContaining(PERMISSIONS.MASTER_DATA.slice(1)));
+    }
+  });
   test('ALL_PERMISSIONS no tiene duplicados', () => {
     expect(new Set(ALL_PERMISSIONS).size).toBe(ALL_PERMISSIONS.length);
   });

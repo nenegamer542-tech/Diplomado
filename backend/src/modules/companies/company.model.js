@@ -16,6 +16,7 @@ const companySchema = new mongoose.Schema(
     phone: { type: String, trim: true, maxlength: 30 },
     address: { type: String, trim: true, maxlength: 240 },
     currency: { type: String, default: 'MXN', trim: true, uppercase: true, maxlength: 3 },
+    currencyId: { type: mongoose.Schema.Types.ObjectId, ref: 'MasterData', default: null },
     timezone: { type: String, default: 'America/Mexico_City', maxlength: 60 },
     status: { type: String, enum: ['active', 'suspended'], default: 'active' },
     settings: { type: Object, default: {} },

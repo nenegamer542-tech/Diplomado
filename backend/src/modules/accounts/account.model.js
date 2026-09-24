@@ -26,6 +26,7 @@ const financeAccountSchema = new mongoose.Schema(
     name: { type: String, required: 'El nombre de la cuenta es obligatorio.', trim: true, maxlength: 120 },
     type: { type: String, enum: ['bank', 'cash', 'wallet'], default: 'bank' },
     currency: { type: String, trim: true, uppercase: true, minlength: 3, maxlength: 3, default: 'USD' },
+    currencyId: { type: mongoose.Schema.Types.ObjectId, ref: 'MasterData', default: null },
     balance: { type: Number, default: 0 },
     status: { type: String, enum: ['active', 'inactive'], default: 'active' },
     notes: { type: String, trim: true, maxlength: 500, default: null },
@@ -35,5 +36,6 @@ const financeAccountSchema = new mongoose.Schema(
 
 financeAccountSchema.index({ companyId: 1, code: 1 }, { unique: true });
 financeAccountSchema.index({ companyId: 1, status: 1 });
+financeAccountSchema.index({ companyId: 1, currencyId: 1 });
 
 module.exports = mongoose.model('FinanceAccount', financeAccountSchema);

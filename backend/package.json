@@ -8,6 +8,7 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "seed": "node src/scripts/seed.js",
+    "migrate:master-data": "node src/scripts/migrate-master-data.js",
     "indexes": "node ../database/indexes/apply-indexes.js",
     "test": "jest --runInBand",
     "test:unit": "jest tests/unit --runInBand",

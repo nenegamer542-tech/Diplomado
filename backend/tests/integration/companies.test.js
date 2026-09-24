@@ -3,6 +3,7 @@
 const request = require('supertest');
 const { describeIfDb, connectTestDb, closeTestDb, app } = require('../helpers/setup');
 const { createPlatformSuperAdmin, login, auth } = require('../helpers/fixtures');
+const MasterData = require('../../src/modules/master-data/master_data.model');
 
 describeIfDb('API /companies (integración, rol plataforma)', () => {
   let superToken;
@@ -33,6 +34,8 @@ describeIfDb('API /companies (integración, rol plataforma)', () => {
     expect(res.status).toBe(201);
     const { company, branch, warehouse, roles } = res.body.data;
     expect(company.status).toBe('active');
+    expect(company.currencyId).toBeTruthy();
+    expect(await MasterData.exists({ _id: company.currencyId, companyId: company._id, type: 'currency', code: 'MXN' })).toBeTruthy();
     expect(branch.code).toBe('MAIN');
     expect(branch.isDefault).toBe(true);
     expect(String(branch.companyId)).toBe(String(company._id));

@@ -4,6 +4,28 @@ const ApiError = require('../../utils/ApiError');
 const productRepository = require('./product.repository');
 const stockLevelRepository = require('../inventory/stock_level.repository');
 const inventoryMovementRepository = require('../inventory/inventory_movement.repository');
+const masterDataRepository = require('../master-data/master_data.repository');
+
+const MASTER_REFERENCES = [
+  ['categoryId', 'category', 'category', 'name'],
+  ['brandId', 'brand', 'brand', 'name'],
+  ['unitId', 'unit', 'unit', 'symbol'],
+  ['taxId', 'tax', 'taxRate', 'rate'],
+];
+
+async function resolveMasterReferences(data, companyId) {
+  const result = { ...data };
+  for (const [idField, type, snapshotField, masterField] of MASTER_REFERENCES) {
+    if (!Object.hasOwn(data, idField)) continue;
+    const master = await masterDataRepository.findById(data[idField], { companyId });
+    if (!master || master.type !== type) throw ApiError.notFound('Recurso no encontrado.');
+    if (master.status !== 'active') {
+      throw ApiError.conflict('No se puede asignar un dato maestro inactivo.');
+    }
+    result[snapshotField] = master[masterField];
+  }
+  return result;
+}
 
 /**
  * Servicio de productos — multiempresa estricto: companyId SIEMPRE del token.
@@ -19,6 +41,7 @@ const productService = {
   },
 
   async create(data, companyId) {
+    data = await resolveMasterReferences(data, companyId);
     const sku = String(data.sku).toUpperCase();
     const existing = await productRepository.findBySku(companyId, sku);
     if (existing) {
@@ -31,7 +54,7 @@ const productService = {
     const product = await productRepository.findById(id, { companyId });
     if (!product) throw ApiError.notFound('Recurso no encontrado.');
 
-    const patch = { ...data };
+    const patch = await resolveMasterReferences(data, companyId);
     if (patch.sku) {
       const sku = String(patch.sku).toUpperCase();
       const existing = await productRepository.findBySku(companyId, sku);

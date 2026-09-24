@@ -18,6 +18,7 @@ const branchRoutes = require('./modules/branches/branch.routes');
 const roleRoutes = require('./modules/roles/role.routes');
 const userRoutes = require('./modules/users/user.routes');
 const auditRoutes = require('./modules/audit/audit.routes');
+const masterDataRoutes = require('./modules/master-data/master_data.routes');
 const productRoutes = require('./modules/products/product.routes');
 const warehouseRoutes = require('./modules/warehouses/warehouse.routes');
 const inventoryRoutes = require('./modules/inventory/inventory.routes');
@@ -96,6 +97,7 @@ router.use('/branches', branchRoutes);
 router.use('/roles', roleRoutes);
 router.use('/users', userRoutes);
 router.use('/audit', auditRoutes);
+router.use('/master-data', masterDataRoutes);
 
 // 4) Módulos FASE 3 (inventario).
 router.use('/products', productRoutes);

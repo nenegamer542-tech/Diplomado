@@ -7,6 +7,7 @@ const companyRepository = require('./company.repository');
 const branchRepository = require('../branches/branch.repository');
 const roleRepository = require('../roles/role.repository');
 const warehouseRepository = require('../warehouses/warehouse.repository');
+const masterDataRepository = require('../master-data/master_data.repository');
 
 /** Sucursal predeterminada creada junto a cada empresa nueva. */
 const DEFAULT_BRANCH = {
@@ -102,12 +103,25 @@ const companyService = {
       });
     }
 
-    const company = await companyRepository.create({ ...data, status: 'active' });
+    let company = await companyRepository.create({ ...data, status: 'active' });
 
     let branch = null;
     let warehouse = null;
+    let baseCurrency = null;
     const roles = [];
     try {
+      const currencyCode = String(company.currency || 'MXN').toUpperCase();
+      baseCurrency = await masterDataRepository.create({
+        companyId: company._id,
+        type: 'currency',
+        code: currencyCode,
+        name: currencyCode,
+        symbol: currencyCode,
+        decimalPlaces: 2,
+        status: 'active',
+      });
+      company = await companyRepository.updateById(company._id, { currencyId: baseCurrency._id });
+
       branch = await branchRepository.create({ companyId: company._id, ...DEFAULT_BRANCH });
       warehouse = await warehouseRepository.create({
         companyId: company._id,
@@ -140,6 +154,7 @@ const companyService = {
 
       const rollbackOps = [
         companyRepository.deleteById(company._id),
+        ...(baseCurrency ? [masterDataRepository.deleteById(baseCurrency._id, { companyId: company._id })] : []),
         ...(branch ? [branchRepository.deleteById(branch._id, { companyId: company._id })] : []),
         ...(warehouse
           ? [warehouseRepository.deleteById(warehouse._id, { companyId: company._id })]
