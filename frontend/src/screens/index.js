@@ -9,6 +9,7 @@ import ProductsScreen from './inventory/ProductsScreen';
 import WarehousesScreen from './inventory/WarehousesScreen';
 import StockScreen from './inventory/StockScreen';
 import MovementsScreen from './inventory/MovementsScreen';
+import CountsScreen from './inventory/CountsScreen';
 
 // Compras / Ventas
 import SuppliersScreen from './purchases/SuppliersScreen';
@@ -41,6 +42,7 @@ export const SCREENS = {
   warehouses: WarehousesScreen,
   stock: StockScreen,
   movements: MovementsScreen,
+  counts: CountsScreen,
   suppliers: SuppliersScreen,
   purchaseOrders: PurchaseOrdersScreen,
   customers: CustomersScreen,

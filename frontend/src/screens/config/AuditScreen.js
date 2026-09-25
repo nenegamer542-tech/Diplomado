@@ -134,13 +134,13 @@ const styles = StyleSheet.create({
   label: { fontSize: 13, fontWeight: '600', color: '#334155' },
   input: {
     borderWidth: 1,
-    borderColor: '#cbd5e1',
+    borderColor: '#252D3D',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 9,
     fontSize: 14,
-    color: '#0f172a',
-    backgroundColor: '#fff',
+    color: '#F8FAFC',
+    backgroundColor: '#0D111C',
   },
-  td: { fontSize: 14, color: '#0f172a' },
+  td: { fontSize: 14, color: '#F8FAFC' },
 });

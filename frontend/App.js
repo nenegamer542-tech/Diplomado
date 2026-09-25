@@ -1,18 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from './src/auth/AuthContext';
 import { RouterProvider, useNav } from './src/nav/RouterContext';
 import Layout from './src/components/Layout';
 import LoginScreen from './src/screens/LoginScreen';
+import LandingScreen from './src/screens/public/LandingScreen';
 import { SCREENS } from './src/screens';
+import { COLORS } from './src/design-system/tokens';
 
 /**
- * FASE 7: shell completo.
- *  - AuthProvider  → sesión (login/logout/permisos).
- *  - RouterProvider → pila de rutas en memoria.
- *  - Layout        → cabecera + menú por permisos + contenido.
- *  - SCREENS       → registro de las 22 pantallas.
+ * Shell Tec[ode ERP: cabecera + menú lateral responsive + 22 pantallas.
  */
 function Shell() {
   const { route } = useNav();
@@ -26,16 +24,22 @@ function Shell() {
 
 function Root() {
   const { session, initializing } = useAuth();
+  const [viewState, setViewState] = useState('landing'); // 'landing' | 'login'
 
   if (initializing) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#2563eb" />
+        <ActivityIndicator size="large" color={COLORS.accent} />
       </View>
     );
   }
 
-  if (!session) return <LoginScreen />;
+  if (!session) {
+    if (viewState === 'landing') {
+      return <LandingScreen onGoLogin={() => setViewState('login')} />;
+    }
+    return <LoginScreen />;
+  }
 
   return (
     <RouterProvider>
@@ -47,7 +51,7 @@ function Root() {
 export default function App() {
   return (
     <AuthProvider>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
       <Root />
     </AuthProvider>
   );
@@ -58,6 +62,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: COLORS.background,
   },
 });

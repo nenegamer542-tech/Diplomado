@@ -8,6 +8,7 @@
     "dev:frontend": "npm --prefix frontend start",
     "web:frontend": "npm --prefix frontend run web",
     "web:build": "npm --prefix frontend run export:web",
+    "web:serve": "node frontend/serve.js",
     "seed": "npm --prefix backend run seed",
     "indexes": "npm --prefix backend run indexes",
     "test": "npm --prefix backend test",

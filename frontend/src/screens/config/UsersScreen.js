@@ -120,4 +120,4 @@ export default function UsersScreen() {
   );
 }
 
-const styles = { td: { fontSize: 14, color: '#0f172a' } };
+const styles = { td: { fontSize: 14, color: '#F8FAFC' } };

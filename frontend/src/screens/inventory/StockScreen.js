@@ -92,6 +92,6 @@ const styles = StyleSheet.create({
   filters: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
   filter: { minWidth: 220, flex: 1, gap: 4 },
   label: { fontSize: 13, fontWeight: '600', color: '#334155' },
-  td: { fontSize: 14, color: '#0f172a' },
-  qty: { fontSize: 14, fontWeight: '700', color: '#0f172a' },
+  td: { fontSize: 14, color: '#F8FAFC' },
+  qty: { fontSize: 14, fontWeight: '700', color: '#F8FAFC' },
 });

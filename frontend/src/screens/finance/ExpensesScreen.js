@@ -143,4 +143,4 @@ export default function ExpensesScreen() {
   );
 }
 
-const styles = { td: { fontSize: 14, color: '#0f172a' }, amount: { fontSize: 14, fontWeight: '700', color: '#b91c1c' } };
+const styles = { td: { fontSize: 14, color: '#F8FAFC' }, amount: { fontSize: 14, fontWeight: '700', color: '#EF4444' } };

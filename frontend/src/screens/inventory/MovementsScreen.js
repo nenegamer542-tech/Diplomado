@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
   btnText: { color: '#fff', fontWeight: '600', fontSize: 14 },
   filter: { minWidth: 220, maxWidth: 320, gap: 4 },
   label: { fontSize: 13, fontWeight: '600', color: '#334155' },
-  td: { fontSize: 14, color: '#0f172a' },
-  type: { fontSize: 13, fontWeight: '700', color: '#1d4ed8' },
-  qty: { fontSize: 14, fontWeight: '700', color: '#0f172a' },
+  td: { fontSize: 14, color: '#F8FAFC' },
+  type: { fontSize: 13, fontWeight: '700', color: '#B6FF00' },
+  qty: { fontSize: 14, fontWeight: '700', color: '#F8FAFC' },
 });

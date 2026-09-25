@@ -103,4 +103,4 @@ export default function AccountsScreen() {
   );
 }
 
-const styles = { td: { fontSize: 14, color: '#0f172a' }, balance: { fontSize: 14, fontWeight: '700', color: '#0f172a' } };
+const styles = { td: { fontSize: 14, color: '#F8FAFC' }, balance: { fontSize: 14, fontWeight: '700', color: '#B6FF00' } };

@@ -142,4 +142,4 @@ export default function IncomesScreen() {
   );
 }
 
-const styles = { td: { fontSize: 14, color: '#0f172a' }, amount: { fontSize: 14, fontWeight: '700', color: '#047857' } };
+const styles = { td: { fontSize: 14, color: '#F8FAFC' }, amount: { fontSize: 14, fontWeight: '700', color: '#B6FF00' } };

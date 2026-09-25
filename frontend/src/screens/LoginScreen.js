@@ -2,15 +2,21 @@ import React, { useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { useAuth } from '../auth/AuthContext';
+import {
+  COLORS,
+  RADIUS,
+  SPACING,
+  TYPOGRAPHY,
+} from '../design-system/tokens';
+import { TTButton, TTInput } from '../design-system/components';
+import { TecodeLogo } from '../components/TecodeLogo';
 
-/** Pantalla de inicio de sesión (web + móvil con los mismos componentes). */
+/** Pantalla de inicio de sesión TECTODE ERP (Dark Theme) */
 export default function LoginScreen() {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
@@ -24,8 +30,7 @@ export default function LoginScreen() {
     try {
       await login(email.trim(), password);
     } catch (e) {
-      // Se muestra SIEMPRE el mensaje del backend (ya es amigable y sin detalles internos).
-      setError(e.message);
+      setError(e.message || 'Credenciales inválidas. Verifique sus datos.');
     } finally {
       setLoading(false);
     }
@@ -37,41 +42,55 @@ export default function LoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.card}>
-        <Text style={styles.title}>ERP Multiempresa</Text>
-        <Text style={styles.subtitle}>Inicie sesión para continuar</Text>
+        {/* LOGO DE MARCA Tec[ode */}
+        <View style={styles.brandHeader}>
+          <TecodeLogo size="lg" layout="horizontal" />
+        </View>
 
-        <Text style={styles.label}>Correo</Text>
-        <TextInput
-          style={styles.input}
+        <Text style={styles.welcomeTitle}>Iniciar Sesión</Text>
+        <Text style={styles.welcomeSub}>Ingrese sus credenciales para acceder al ecosistema.</Text>
+
+        {error ? (
+          <View style={styles.errorBox}>
+            <Text style={styles.errorText}>⚠️ {error}</Text>
+          </View>
+        ) : null}
+
+        <TTInput
+          label="Correo Electrónico"
           value={email}
           onChangeText={setEmail}
+          placeholder="usuario@empresa.com"
+          keyboardType="email-address"
           autoCapitalize="none"
           autoComplete="email"
-          keyboardType="email-address"
-          placeholder="usuario@empresa.com"
-          placeholderTextColor="#94a3b8"
+          disabled={loading}
         />
 
-        <Text style={styles.label}>Contraseña</Text>
-        <TextInput
-          style={styles.input}
+        <TTInput
+          label="Contraseña"
           value={password}
           onChangeText={setPassword}
-          secureTextEntry
           placeholder="••••••••"
-          placeholderTextColor="#94a3b8"
+          secureTextEntry
+          disabled={loading}
           onSubmitEditing={onSubmit}
         />
 
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-
-        <Pressable
-          style={[styles.button, loading && styles.buttonDisabled]}
-          onPress={onSubmit}
+        <TTButton
+          variant="primary"
+          size="lg"
+          loading={loading}
           disabled={loading || !email || !password}
+          onPress={onSubmit}
+          style={styles.submitBtn}
         >
-          <Text style={styles.buttonText}>{loading ? 'Entrando…' : 'Entrar'}</Text>
-        </Pressable>
+          Acceder al Sistema
+        </TTButton>
+
+        <Text style={styles.footerNote}>
+          Tec[ode ERP Multiempresa · Sistema Seguro SSL / TLS
+        </Text>
       </View>
     </KeyboardAvoidingView>
   );
@@ -80,45 +99,84 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: COLORS.background,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 16,
+    padding: SPACING.md,
   },
   card: {
     width: '100%',
     maxWidth: 420,
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 24,
-    gap: 8,
-    shadowColor: '#0f172a',
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
-  },
-  title: { fontSize: 24, fontWeight: '700', color: '#0f172a' },
-  subtitle: { fontSize: 14, color: '#64748b', marginBottom: 12 },
-  label: { fontSize: 13, fontWeight: '600', color: '#334155' },
-  input: {
+    backgroundColor: COLORS.cardElevated,
     borderWidth: 1,
-    borderColor: '#cbd5e1',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 15,
-    color: '#0f172a',
-    backgroundColor: '#fff',
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.xl,
+    padding: SPACING['2xl'],
+    gap: SPACING.md,
   },
-  error: { color: '#dc2626', fontSize: 13, marginTop: 4 },
-  button: {
-    marginTop: 12,
-    backgroundColor: '#2563eb',
-    borderRadius: 8,
-    paddingVertical: 12,
+  brandHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: SPACING.md,
+    marginBottom: SPACING.sm,
   },
-  buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  brandLogoBox: {
+    width: 44,
+    height: 44,
+    borderRadius: RADIUS.lg,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  brandLogoText: {
+    color: COLORS.textPrimary,
+    fontWeight: '900',
+    fontSize: 24,
+    fontFamily: TYPOGRAPHY.fontFamily.display,
+  },
+  brandName: {
+    color: COLORS.textPrimary,
+    fontSize: TYPOGRAPHY.fontSize.xl,
+    fontWeight: TYPOGRAPHY.fontWeight.extrabold,
+    fontFamily: TYPOGRAPHY.fontFamily.display,
+    letterSpacing: 1,
+  },
+  brandTag: {
+    color: COLORS.accent,
+    fontSize: TYPOGRAPHY.fontSize.xs,
+    fontWeight: TYPOGRAPHY.fontWeight.bold,
+  },
+  welcomeTitle: {
+    fontSize: TYPOGRAPHY.fontSize['2xl'],
+    fontWeight: TYPOGRAPHY.fontWeight.bold,
+    color: COLORS.textPrimary,
+    fontFamily: TYPOGRAPHY.fontFamily.display,
+  },
+  welcomeSub: {
+    fontSize: TYPOGRAPHY.fontSize.sm,
+    color: COLORS.textMuted,
+    fontFamily: TYPOGRAPHY.fontFamily.ui,
+    marginBottom: SPACING.xs,
+  },
+  errorBox: {
+    backgroundColor: `${COLORS.error}15`,
+    borderColor: `${COLORS.error}40`,
+    borderWidth: 1,
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
+  },
+  errorText: {
+    color: COLORS.error,
+    fontSize: TYPOGRAPHY.fontSize.sm,
+    fontWeight: TYPOGRAPHY.fontWeight.semibold,
+  },
+  submitBtn: {
+    marginTop: SPACING.sm,
+  },
+  footerNote: {
+    fontSize: TYPOGRAPHY.fontSize.xs,
+    color: COLORS.textMuted,
+    textAlign: 'center',
+    marginTop: SPACING.sm,
+  },
 });

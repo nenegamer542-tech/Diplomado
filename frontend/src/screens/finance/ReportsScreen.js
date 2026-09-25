@@ -12,10 +12,20 @@ import {
 import { api, apiText } from '../../api/client';
 import { useAuth } from '../../auth/AuthContext';
 import StatusBadge from '../../components/StatusBadge';
+import {
+  COLORS,
+  RADIUS,
+  SPACING,
+  TYPOGRAPHY,
+} from '../../design-system/tokens';
+import { TTButton, TTStatCard } from '../../design-system/components';
 import { money } from '../../lib/format';
 
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const currentYear = new Date().getFullYear();
+
 const TABS = [
-  { key: 'kpis', label: 'KPI' },
+  { key: 'kpis', label: 'KPIs generales' },
   { key: 'sales', label: 'Ventas' },
   { key: 'purchases', label: 'Compras' },
   { key: 'finance', label: 'Finanzas' },
@@ -23,15 +33,12 @@ const TABS = [
   { key: 'inventory', label: 'Inventario' },
 ];
 
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-const currentYear = new Date().getFullYear();
-
-/** GET de reporte (no paginado) con recarga por pestaña/rango. */
 function useReport(path, query, enabled) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [tick, setTick] = useState(0);
+
   const key = JSON.stringify(query);
 
   useEffect(() => {
@@ -40,12 +47,16 @@ function useReport(path, query, enabled) {
     setLoading(true);
     api(path, { query })
       .then((d) => {
-        if (cancelled) return;
-        setData(d);
-        setError(null);
+        if (!cancelled) {
+          setData(d);
+          setError(null);
+        }
       })
       .catch((e) => {
-        if (!cancelled) setError(e.message);
+        if (!cancelled) {
+          setData(null);
+          setError(e.message);
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -53,20 +64,9 @@ function useReport(path, query, enabled) {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [path, key, enabled, tick]);
 
   return { data, loading, error, reload: useCallback(() => setTick((t) => t + 1), []) };
-}
-
-function Stat({ label, value, tone }) {
-  const color = tone === 'good' ? '#047857' : tone === 'bad' ? '#b91c1c' : '#0f172a';
-  return (
-    <View style={styles.stat}>
-      <Text style={styles.statLabel}>{label}</Text>
-      <Text style={[styles.statValue, { color }]}>{value}</Text>
-    </View>
-  );
 }
 
 function Table({ columns, rows, empty }) {
@@ -116,7 +116,6 @@ export default function ReportsScreen() {
     if (rangeOk(from) && from) q.from = from;
     if (rangeOk(to) && to) q.to = to;
     return q;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, from, to, year, month]);
 
   const enabled = tab === 'budgets' ? yearOk : rangeOk(from) && rangeOk(to);
@@ -152,7 +151,7 @@ export default function ReportsScreen() {
 
   const renderTab = () => {
     if (!enabled) return <Text style={styles.empty}>Complete un rango de fechas válido (AAAA-MM-DD).</Text>;
-    if (report.loading) return <ActivityIndicator color="#2563eb" style={{ marginTop: 24 }} />;
+    if (report.loading) return <ActivityIndicator color={COLORS.accent} style={{ marginTop: 24 }} />;
     if (report.error) return <Text style={styles.error}>{report.error}</Text>;
     if (!d) return null;
 
@@ -160,17 +159,17 @@ export default function ReportsScreen() {
       return (
         <>
           <View style={styles.cards}>
-            <Stat label="Ventas aprobadas" value={money(d.sales?.total)} tone="good" />
-            <Stat label="Compras aprobadas" value={money(d.purchases?.total)} />
-            <Stat label="Ingresos" value={money(d.income?.total)} tone="good" />
-            <Stat label="Gastos" value={money(d.expense?.total)} tone="bad" />
-            <Stat label="Resultado neto" value={money(d.net)} tone={(d.net ?? 0) >= 0 ? 'good' : 'bad'} />
+            <TTStatCard label="Ventas Aprobadas" value={money(d.sales?.total)} icon="📈" accentColor={COLORS.accent} />
+            <TTStatCard label="Compras Aprobadas" value={money(d.purchases?.total)} icon="🛒" accentColor={COLORS.info} />
+            <TTStatCard label="Ingresos" value={money(d.income?.total)} icon="💰" accentColor={COLORS.accent} />
+            <TTStatCard label="Gastos" value={money(d.expense?.total)} icon="📉" accentColor={COLORS.error} />
+            <TTStatCard label="Resultado Neto" value={money(d.net)} icon="📊" accentColor={(d.net ?? 0) >= 0 ? COLORS.accent : COLORS.error} />
           </View>
           <View style={styles.cards}>
-            <Stat label="Productos activos" value={String(d.catalog?.products ?? 0)} />
-            <Stat label="Clientes" value={String(d.catalog?.customers ?? 0)} />
-            <Stat label="Proveedores" value={String(d.catalog?.suppliers ?? 0)} />
-            <Stat label="Stock bajo" value={String(d.catalog?.lowStock ?? 0)} tone="bad" />
+            <TTStatCard label="Productos Activos" value={String(d.catalog?.products ?? 0)} icon="📦" />
+            <TTStatCard label="Clientes" value={String(d.catalog?.customers ?? 0)} icon="👥" />
+            <TTStatCard label="Proveedores" value={String(d.catalog?.suppliers ?? 0)} icon="🏢" />
+            <TTStatCard label="Stock Bajo" value={String(d.catalog?.lowStock ?? 0)} icon="⚠️" accentColor={COLORS.error} />
           </View>
         </>
       );
@@ -208,10 +207,10 @@ export default function ReportsScreen() {
       return (
         <>
           <View style={styles.cards}>
-            <Stat label="Ingresos" value={money(d.income?.total)} tone="good" />
-            <Stat label="Gastos" value={money(d.expense?.total)} tone="bad" />
-            <Stat label="Neto" value={money(d.net)} tone={(d.net ?? 0) >= 0 ? 'good' : 'bad'} />
-            <Stat label="Saldo en cuentas" value={money(d.cash?.accountsBalance)} />
+            <TTStatCard label="Ingresos" value={money(d.income?.total)} icon="📈" accentColor={COLORS.accent} />
+            <TTStatCard label="Gastos" value={money(d.expense?.total)} icon="📉" accentColor={COLORS.error} />
+            <TTStatCard label="Neto" value={money(d.net)} icon="💰" accentColor={(d.net ?? 0) >= 0 ? COLORS.accent : COLORS.error} />
+            <TTStatCard label="Saldo en Cuentas" value={money(d.cash?.accountsBalance)} icon="💳" />
           </View>
           <Text style={styles.h2}>Ingresos por categoría</Text>
           <Table
@@ -253,9 +252,9 @@ export default function ReportsScreen() {
       return (
         <>
           <View style={styles.cards}>
-            <Stat label="Planeado" value={money(d.totals?.planned)} />
-            <Stat label="Ejecutado" value={money(d.totals?.executed)} tone="bad" />
-            <Stat label="Variación" value={money(d.totals?.variance)} tone={(d.totals?.variance ?? 0) >= 0 ? 'good' : 'bad'} />
+            <TTStatCard label="Planeado" value={money(d.totals?.planned)} icon="📋" />
+            <TTStatCard label="Ejecutado" value={money(d.totals?.executed)} icon="💸" accentColor={COLORS.error} />
+            <TTStatCard label="Variación" value={money(d.totals?.variance)} icon="📊" accentColor={(d.totals?.variance ?? 0) >= 0 ? COLORS.accent : COLORS.error} />
           </View>
           <Table
             columns={[
@@ -281,9 +280,9 @@ export default function ReportsScreen() {
     return (
       <>
         <View style={styles.cards}>
-          <Stat label="Valor a costo" value={money(d.totalValue)} />
-          <Stat label="Unidades" value={String(d.totalQuantity ?? 0)} />
-          <Stat label="Productos con stock bajo" value={String(d.lowStock ?? 0)} tone="bad" />
+          <TTStatCard label="Valor a costo" value={money(d.totalValue)} icon="💰" />
+          <TTStatCard label="Unidades" value={String(d.totalQuantity ?? 0)} icon="📦" />
+          <TTStatCard label="Stock bajo" value={String(d.lowStock ?? 0)} icon="⚠️" accentColor={COLORS.error} />
         </View>
         <Table
           columns={[
@@ -304,7 +303,11 @@ export default function ReportsScreen() {
     <View style={styles.wrap}>
       <View style={styles.tabs}>
         {TABS.map((t) => (
-          <Pressable key={t.key} style={[styles.tab, tab === t.key && styles.tabOn]} onPress={() => setTab(t.key)}>
+          <Pressable
+            key={t.key}
+            style={[styles.tab, tab === t.key && styles.tabOn]}
+            onPress={() => setTab(t.key)}
+          >
             <Text style={[styles.tabText, tab === t.key && styles.tabTextOn]}>{t.label}</Text>
           </Pressable>
         ))}
@@ -315,32 +318,32 @@ export default function ReportsScreen() {
           <>
             <View style={styles.dateBox}>
               <Text style={styles.label}>Año</Text>
-              <TextInput style={styles.input} value={year} onChangeText={setYear} keyboardType="numeric" placeholder="2026" placeholderTextColor="#94a3b8" />
+              <TextInput style={styles.input} value={year} onChangeText={setYear} keyboardType="numeric" placeholder="2026" placeholderTextColor={COLORS.textMuted} />
             </View>
             <View style={styles.dateBox}>
               <Text style={styles.label}>Mes (1-12)</Text>
-              <TextInput style={styles.input} value={month} onChangeText={setMonth} keyboardType="numeric" placeholder="(anual)" placeholderTextColor="#94a3b8" />
+              <TextInput style={styles.input} value={month} onChangeText={setMonth} keyboardType="numeric" placeholder="(anual)" placeholderTextColor={COLORS.textMuted} />
             </View>
           </>
         ) : (
           <>
             <View style={styles.dateBox}>
               <Text style={styles.label}>Desde</Text>
-              <TextInput style={styles.input} value={from} onChangeText={setFrom} placeholder="AAAA-MM-DD" placeholderTextColor="#94a3b8" />
+              <TextInput style={styles.input} value={from} onChangeText={setFrom} placeholder="AAAA-MM-DD" placeholderTextColor={COLORS.textMuted} />
             </View>
             <View style={styles.dateBox}>
               <Text style={styles.label}>Hasta</Text>
-              <TextInput style={styles.input} value={to} onChangeText={setTo} placeholder="AAAA-MM-DD" placeholderTextColor="#94a3b8" />
+              <TextInput style={styles.input} value={to} onChangeText={setTo} placeholder="AAAA-MM-DD" placeholderTextColor={COLORS.textMuted} />
             </View>
           </>
         )}
-        <Pressable style={styles.reload} onPress={report.reload}>
-          <Text style={styles.reloadText}>Actualizar</Text>
-        </Pressable>
+        <TTButton variant="secondary" size="md" onPress={report.reload}>
+          Actualizar
+        </TTButton>
         {can('reports.export') ? (
-          <Pressable style={styles.export} onPress={exportCsv}>
-            <Text style={styles.exportText}>Exportar CSV</Text>
-          </Pressable>
+          <TTButton variant="primary" size="md" onPress={exportCsv}>
+            Exportar CSV
+          </TTButton>
         ) : null}
       </View>
 
@@ -352,48 +355,32 @@ export default function ReportsScreen() {
 }
 
 const styles = StyleSheet.create({
-  wrap: { gap: 14 },
-  tabs: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
-  tab: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, backgroundColor: '#f1f5f9' },
-  tabOn: { backgroundColor: '#2563eb' },
-  tabText: { fontSize: 13, fontWeight: '600', color: '#475569' },
-  tabTextOn: { color: '#fff' },
-  toolbar: { flexDirection: 'row', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' },
-  dateBox: { gap: 4, width: 150 },
-  label: { fontSize: 12, fontWeight: '600', color: '#64748b' },
+  wrap: { gap: SPACING.md },
+  tabs: { flexDirection: 'row', gap: SPACING.xs, flexWrap: 'wrap' },
+  tab: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.xs + 2, borderRadius: RADIUS.pill, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border },
+  tabOn: { backgroundColor: `${COLORS.accent}20`, borderColor: COLORS.accent },
+  tabText: { fontSize: TYPOGRAPHY.fontSize.xs + 1, fontWeight: TYPOGRAPHY.fontWeight.medium, color: COLORS.textMuted },
+  tabTextOn: { color: COLORS.accent, fontWeight: TYPOGRAPHY.fontWeight.bold },
+  toolbar: { flexDirection: 'row', gap: SPACING.md, alignItems: 'flex-end', flexWrap: 'wrap' },
+  dateBox: { gap: SPACING.xs, width: 150 },
+  label: { fontSize: TYPOGRAPHY.fontSize.xs, fontWeight: TYPOGRAPHY.fontWeight.semibold, color: COLORS.textSecondary },
   input: {
     borderWidth: 1,
-    borderColor: '#cbd5e1',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    fontSize: 14,
-    color: '#0f172a',
-    backgroundColor: '#fff',
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.md,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs + 2,
+    fontSize: TYPOGRAPHY.fontSize.sm,
+    color: COLORS.textPrimary,
+    backgroundColor: COLORS.surface,
   },
-  reload: { backgroundColor: '#f1f5f9', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10 },
-  reloadText: { color: '#334155', fontWeight: '600', fontSize: 14 },
-  export: { backgroundColor: '#047857', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10 },
-  exportText: { color: '#fff', fontWeight: '600', fontSize: 14 },
-  cards: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
-  stat: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    minWidth: 150,
-    gap: 4,
-  },
-  statLabel: { fontSize: 12, color: '#64748b', fontWeight: '600' },
-  statValue: { fontSize: 20, fontWeight: '800' },
-  h2: { fontSize: 15, fontWeight: '700', color: '#0f172a', marginTop: 6 },
-  table: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 12, overflow: 'hidden' },
-  tr: { flexDirection: 'row', paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
-  trHead: { backgroundColor: '#f8fafc' },
-  th: { paddingVertical: 9, paddingRight: 6, fontSize: 11, fontWeight: '700', color: '#475569', textTransform: 'uppercase' },
-  td: { fontSize: 13, color: '#0f172a' },
-  empty: { color: '#64748b', fontSize: 14, paddingVertical: 8 },
-  error: { color: '#dc2626', fontSize: 13 },
+  cards: { flexDirection: 'row', gap: SPACING.md, flexWrap: 'wrap' },
+  h2: { fontSize: TYPOGRAPHY.fontSize.md, fontWeight: TYPOGRAPHY.fontWeight.bold, color: COLORS.textPrimary, marginTop: SPACING.xs },
+  table: { backgroundColor: COLORS.card, borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.lg, overflow: 'hidden' },
+  tr: { flexDirection: 'row', paddingHorizontal: SPACING.md, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  trHead: { backgroundColor: COLORS.surface },
+  th: { paddingVertical: SPACING.md, paddingRight: SPACING.sm, fontSize: TYPOGRAPHY.fontSize.xs, fontWeight: TYPOGRAPHY.fontWeight.bold, color: COLORS.textMuted, textTransform: 'uppercase' },
+  td: { fontSize: TYPOGRAPHY.fontSize.sm, color: COLORS.textPrimary },
+  empty: { color: COLORS.textMuted, fontSize: TYPOGRAPHY.fontSize.sm, paddingVertical: SPACING.sm },
+  error: { color: COLORS.error, fontSize: TYPOGRAPHY.fontSize.sm },
 });
