@@ -11,16 +11,46 @@
  */
 
 const BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  process.env.EXPO_PUBLIC_API_URL || 'https://diplomado-cte0.onrender.com/api/v1';
+
+const TOKEN_KEY = 'tectode_erp_tokens';
 
 let accessToken = null;
 let refreshToken = null;
 let onSessionExpired = null;
 let refreshPromise = null;
 
+export function loadStoredTokens() {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const stored = window.localStorage.getItem(TOKEN_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        accessToken = parsed.access || null;
+        refreshToken = parsed.refresh || null;
+        return { access: accessToken, refresh: refreshToken };
+      }
+    }
+  } catch {
+    /* ignore storage errors */
+  }
+  return { access: null, refresh: null };
+}
+
 export function setTokens({ access = null, refresh = null } = {}) {
   accessToken = access;
   refreshToken = refresh;
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      if (access || refresh) {
+        window.localStorage.setItem(TOKEN_KEY, JSON.stringify({ access, refresh }));
+      } else {
+        window.localStorage.removeItem(TOKEN_KEY);
+      }
+    }
+  } catch {
+    /* ignore storage errors */
+  }
 }
 
 export function getAccessToken() {
