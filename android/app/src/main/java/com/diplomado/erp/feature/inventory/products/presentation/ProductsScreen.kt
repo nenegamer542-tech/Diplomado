@@ -1,10 +1,10 @@
 package com.diplomado.erp.feature.inventory.products.presentation
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -22,6 +22,17 @@ fun ProductsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
+    var showDialog by remember { mutableStateOf(false) }
+
+    var sku by remember { mutableStateOf("") }
+    var name by remember { mutableStateOf("") }
+    var unit by remember { mutableStateOf("Saco") }
+    var costPriceText by remember { mutableStateOf("180.00") }
+    var salePriceText by remember { mutableStateOf("220.00") }
+    var minStockText by remember { mutableStateOf("10") }
+    var maxStockText by remember { mutableStateOf("500") }
+    var formError by remember { mutableStateOf<String?>(null) }
+    var isSubmitting by remember { mutableStateOf(false) }
 
     Box(modifier = modifier.fillMaxSize().padding(16.dp)) {
         when (val state = uiState) {
@@ -42,7 +53,17 @@ fun ProductsScreen(
                     searchQuery = searchQuery,
                     onSearchChange = { viewModel.onSearchChange(it) },
                     onCreateClick = if (PermissionChecker.hasPermission("products.create")) {
-                        { /* Abrir diálogo crear material */ }
+                        {
+                            sku = "MAT-${(state.total + 1).toString().padStart(3, '0')}"
+                            name = ""
+                            unit = "Saco"
+                            costPriceText = "180.00"
+                            salePriceText = "220.00"
+                            minStockText = "10"
+                            maxStockText = "500"
+                            formError = null
+                            showDialog = true
+                        }
                     } else null,
                     createLabel = "Nuevo material",
                     emptyText = "Sin materiales de construcción registrados."
@@ -80,6 +101,108 @@ fun ProductsScreen(
                                 if (mode != "none" && mode.isNotEmpty()) {
                                     Spacer(modifier = Modifier.height(4.dp))
                                     TTBadge(status = "active", customLabel = "Control ${mode.uppercase()}")
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // DIALOGO MODAL CREAR NUEVO MATERIAL DE CONSTRUCCION
+                if (showDialog) {
+                    androidx.compose.ui.window.Dialog(onDismissRequest = { if (!isSubmitting) showDialog = false }) {
+                        TTCard(modifier = Modifier.fillMaxWidth()) {
+                            Column(
+                                modifier = Modifier.verticalScroll(rememberScrollState()),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Text(
+                                    text = "Nuevo Material de Construcción",
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TecodeTextPrimary
+                                )
+
+                                if (formError != null) {
+                                    Text(
+                                        text = "⚠️ $formError",
+                                        fontSize = 12.sp,
+                                        color = TecodeError,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+
+                                TTTextField(
+                                    value = sku,
+                                    onValueChange = { sku = it },
+                                    label = "SKU / Código del Insumo",
+                                    placeholder = "MAT-001"
+                                )
+
+                                TTTextField(
+                                    value = name,
+                                    onValueChange = { name = it },
+                                    label = "Nombre del Material",
+                                    placeholder = "Cemento Gris 50 kg"
+                                )
+
+                                TTTextField(
+                                    value = unit,
+                                    onValueChange = { unit = it },
+                                    label = "Unidad de Medida",
+                                    placeholder = "Saco, Tonelada, m³, Pieza"
+                                )
+
+                                TTTextField(
+                                    value = costPriceText,
+                                    onValueChange = { costPriceText = it },
+                                    label = "Costo Unitario ($)",
+                                    placeholder = "180.00"
+                                )
+
+                                TTTextField(
+                                    value = minStockText,
+                                    onValueChange = { minStockText = it },
+                                    label = "Stock Mínimo Alerta",
+                                    placeholder = "10"
+                                )
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    TTButton(
+                                        text = "Cancelar",
+                                        onClick = { showDialog = false },
+                                        variant = TTButtonVariant.Ghost,
+                                        modifier = Modifier.weight(1f),
+                                        enabled = !isSubmitting
+                                    )
+                                    TTButton(
+                                        text = "Guardar Material",
+                                        onClick = {
+                                            if (sku.isBlank() || name.isBlank()) {
+                                                formError = "Ingrese SKU y nombre del material."
+                                                return@TTButton
+                                            }
+                                            val cost = costPriceText.toDoubleOrNull() ?: 0.0
+                                            val sale = salePriceText.toDoubleOrNull() ?: cost
+                                            val minS = minStockText.toDoubleOrNull() ?: 0.0
+                                            val maxS = maxStockText.toDoubleOrNull() ?: 500.0
+
+                                            isSubmitting = true
+                                            viewModel.createProduct(sku, name, unit, cost, sale, minS, maxS) { success, err ->
+                                                isSubmitting = false
+                                                if (success) {
+                                                    showDialog = false
+                                                } else {
+                                                    formError = err ?: "Error al guardar el material."
+                                                }
+                                            }
+                                        },
+                                        variant = TTButtonVariant.Primary,
+                                        loading = isSubmitting,
+                                        modifier = Modifier.weight(1f)
+                                    )
                                 }
                             }
                         }

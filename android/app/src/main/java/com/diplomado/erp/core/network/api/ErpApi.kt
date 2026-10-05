@@ -116,6 +116,9 @@ interface ErpApi {
     @GET("finance/accounts")
     suspend fun getFinanceAccounts(): Response<ApiResponse<List<AccountDto>>>
 
+    @POST("finance/accounts")
+    suspend fun createFinanceAccount(@Body account: Map<String, @JvmSuppressWildcards Any?>): Response<ApiResponse<AccountDto>>
+
     @GET("finance/incomes")
     suspend fun getIncomes(): Response<ApiResponse<List<IncomeDto>>>
 

@@ -50,4 +50,39 @@ class ProductsViewModel : ViewModel() {
             }
         }
     }
+
+    fun createProduct(
+        sku: String,
+        name: String,
+        unit: String,
+        costPrice: Double,
+        salePrice: Double,
+        minStock: Double,
+        maxStock: Double,
+        onComplete: (Boolean, String?) -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                val body = mapOf(
+                    "sku" to sku,
+                    "name" to name,
+                    "unit" to unit.ifEmpty { "unidad" },
+                    "costPrice" to costPrice,
+                    "salePrice" to salePrice,
+                    "minStock" to minStock,
+                    "maxStock" to maxStock,
+                    "status" to "active"
+                )
+                val res = RetrofitClient.api.createProduct(body)
+                if (res.isSuccessful) {
+                    loadProducts()
+                    onComplete(true, null)
+                } else {
+                    onComplete(false, res.body()?.error?.message ?: "Error al registrar material.")
+                }
+            } catch (e: Exception) {
+                onComplete(false, e.message ?: "Error de conexión.")
+            }
+        }
+    }
 }
