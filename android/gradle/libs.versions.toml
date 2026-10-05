@@ -1,6 +1,6 @@
 [versions]
-agp = "9.4.1"
-kotlin = "2.2.10"
+agp = "8.3.0"
+kotlin = "1.9.22"
 coreKtx = "1.12.0"
 junit = "4.13.2"
 junitVersion = "1.1.5"
@@ -16,7 +16,7 @@ retrofitKotlinxSerializationConverter = "1.0.0"
 datastorePreferences = "1.0.0"
 securityCrypto = "1.1.0-alpha06"
 room = "2.6.1"
-ksp = "1.9.23-1.0.19"
+ksp = "1.9.22-1.0.17"
 coroutines = "1.8.0"
 
 [libraries]
@@ -62,4 +62,3 @@ android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
-kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
