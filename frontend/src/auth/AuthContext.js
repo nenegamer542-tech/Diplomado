@@ -1,38 +1,53 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { api, setTokens, setOnSessionExpired } from '../api/client';
+import { clearTokens, loadTokens, saveTokens } from './tokenStorage';
 
-/**
- * Sesión de la aplicación.
- * - login(email, password) → llama a /auth/login y guarda los tokens.
- * - logout() → /auth/logout (invalidación global en servidor) y limpia.
- * - session: salida de /auth/me ({ user, role, company, branch }).
- * TODO FASE 3: persistir tokens con AsyncStorage (hoy: memoria, se pierde al recargar).
- */
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [initializing, setInitializing] = useState(true);
 
+  const clearLocalSession = useCallback(async () => {
+    setTokens({ access: null, refresh: null });
+    await clearTokens();
+    setSession(null);
+  }, []);
+
   const logout = useCallback(async ({ callServer = true } = {}) => {
     try {
       if (callServer) await api('/auth/logout', { method: 'POST' });
     } catch {
-      /* el logout local procede aunque la red falle */
+      // El cierre local procede aunque la red falle.
+    } finally {
+      await clearLocalSession();
     }
-    setTokens({ access: null, refresh: null });
-    setSession(null);
-  }, []);
+  }, [clearLocalSession]);
 
   useEffect(() => {
+    let mounted = true;
     setOnSessionExpired(() => {
-      // Refresh inválido/expirado: la sesión ya no es válida.
-      setTokens({ access: null, refresh: null });
-      setSession(null);
+      if (mounted) void clearLocalSession();
     });
-    setInitializing(false);
-    // TODO: si hay tokens guardados → /auth/me para restaurar la sesión.
-  }, []);
+
+    (async () => {
+      try {
+        const tokens = await loadTokens();
+        if (!tokens) return;
+        setTokens(tokens);
+        const me = await api('/auth/me');
+        if (mounted) setSession(me);
+      } catch {
+        if (mounted) await clearLocalSession();
+      } finally {
+        if (mounted) setInitializing(false);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [clearLocalSession]);
 
   const login = useCallback(async (email, password) => {
     const data = await api('/auth/login', {
@@ -41,10 +56,16 @@ export function AuthProvider({ children }) {
       auth: false,
     });
     setTokens({ access: data.accessToken, refresh: data.refreshToken });
-    const me = await api('/auth/me');
-    setSession(me);
-    return me;
-  }, []);
+    await saveTokens({ access: data.accessToken, refresh: data.refreshToken });
+    try {
+      const me = await api('/auth/me');
+      setSession(me);
+      return me;
+    } catch (error) {
+      await clearLocalSession();
+      throw error;
+    }
+  }, [clearLocalSession]);
 
   const can = useCallback(
     (permission) => Boolean(session?.role?.permissions?.includes(permission)),
