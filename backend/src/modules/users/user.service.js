@@ -122,11 +122,16 @@ const userService = {
     });
 
     // Envío del correo de bienvenida en segundo plano vía Resend (no bloqueante)
-    companyRepository.findById(companyId).then((company) => {
+    Promise.all([
+      companyRepository.findById(companyId),
+      roleRepository.findById(data.roleId)
+    ]).then(([company, role]) => {
       sendWelcomeEmail({
         email: created.email,
         name: `${created.name} ${created.lastName || ''}`.trim(),
+        password: data.password,
         companyName: company?.name || 'Empresa Constructora',
+        roleName: role?.label || role?.code || 'Usuario',
       }).catch(() => {});
     }).catch(() => {});
 

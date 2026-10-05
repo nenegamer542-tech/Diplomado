@@ -1,11 +1,12 @@
 package com.diplomado.erp.feature.projects.presentation
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -16,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.diplomado.erp.core.common.rbac.PermissionChecker
 import com.diplomado.erp.core.network.dto.ProjectDto
 import com.diplomado.erp.ui.components.*
 import com.diplomado.erp.ui.theme.*
@@ -28,43 +30,17 @@ fun ProjectsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
+    var showCreateDialog by remember { mutableStateOf(false) }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(
-                    text = "Mis Obras",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = TecodeTextPrimary
-                )
-                Text(
-                    text = "Proyectos de Construcción y Centros de Control",
-                    fontSize = 12.sp,
-                    color = TecodeTextMuted
-                )
-            }
-        }
+    var code by remember { mutableStateOf("") }
+    var name by remember { mutableStateOf("") }
+    var location by remember { mutableStateOf("") }
+    var budgetText by remember { mutableStateOf("") }
+    var managerName by remember { mutableStateOf("") }
+    var formError by remember { mutableStateOf<String?>(null) }
+    var isSubmitting by remember { mutableStateOf(false) }
 
-        TTTextField(
-            value = searchQuery,
-            onValueChange = {
-                searchQuery = it
-                viewModel.loadProjects(searchQuery.ifEmpty { null })
-            },
-            label = "Buscar Obra",
-            placeholder = "Buscar por código, nombre o ubicación..."
-        )
-
+    Box(modifier = modifier.fillMaxSize().padding(16.dp)) {
         when (val state = uiState) {
             is ProjectsUiState.Loading -> {
                 TTLoading(text = "Cargando obras de construcción...")
@@ -78,18 +54,126 @@ fun ProjectsScreen(
                 )
             }
             is ProjectsUiState.Success -> {
-                if (state.projects.isEmpty()) {
-                    TTEmptyState(
-                        title = "Sin obras registradas",
-                        description = "No existen proyectos de construcción que coincidan con la búsqueda."
-                    )
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(state.projects) { project ->
-                            ProjectCard(project = project, onClick = { onProjectClick(project.id) })
+                TTDataTable(
+                    title = "Mis Obras",
+                    subtitle = "${state.projects.size} proyectos registrados",
+                    items = state.projects,
+                    searchQuery = searchQuery,
+                    onSearchChange = {
+                        searchQuery = it
+                        viewModel.loadProjects(searchQuery.ifEmpty { null })
+                    },
+                    onCreateClick = if (PermissionChecker.hasPermission("projects.create")) {
+                        {
+                            code = "OBRA-${(state.projects.size + 1).toString().padStart(3, '0')}"
+                            name = ""
+                            location = ""
+                            budgetText = "1500000"
+                            managerName = ""
+                            formError = null
+                            showCreateDialog = true
+                        }
+                    } else null,
+                    createLabel = "Nueva obra",
+                    emptyText = "Sin obras registradas."
+                ) { project ->
+                    ProjectCard(project = project, onClick = { onProjectClick(project.id) })
+                }
+
+                // DIALOGO CREAR NUEVA OBRA DE CONSTRUCCION
+                if (showCreateDialog) {
+                    androidx.compose.ui.window.Dialog(onDismissRequest = { if (!isSubmitting) showCreateDialog = false }) {
+                        TTCard(modifier = Modifier.fillMaxWidth()) {
+                            Column(
+                                modifier = Modifier.verticalScroll(rememberScrollState()),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Text(
+                                    text = "Nueva Obra de Construcción",
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TecodeTextPrimary
+                                )
+
+                                if (formError != null) {
+                                    Text(
+                                        text = "⚠️ $formError",
+                                        fontSize = 12.sp,
+                                        color = TecodeError,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+
+                                TTTextField(
+                                    value = code,
+                                    onValueChange = { code = it },
+                                    label = "Código / Folio",
+                                    placeholder = "OBRA-003"
+                                )
+
+                                TTTextField(
+                                    value = name,
+                                    onValueChange = { name = it },
+                                    label = "Nombre de la Obra",
+                                    placeholder = "Construcción Edificio Norte"
+                                )
+
+                                TTTextField(
+                                    value = location,
+                                    onValueChange = { location = it },
+                                    label = "Ubicación / Dirección",
+                                    placeholder = "Av. Insurgentes Sur 450, CDMX"
+                                )
+
+                                TTTextField(
+                                    value = budgetText,
+                                    onValueChange = { budgetText = it },
+                                    label = "Presupuesto Total ($)",
+                                    placeholder = "1500000"
+                                )
+
+                                TTTextField(
+                                    value = managerName,
+                                    onValueChange = { managerName = it },
+                                    label = "Residente / Responsable",
+                                    placeholder = "Ing. Carlos Mendoza"
+                                )
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    TTButton(
+                                        text = "Cancelar",
+                                        onClick = { showCreateDialog = false },
+                                        variant = TTButtonVariant.Ghost,
+                                        modifier = Modifier.weight(1f),
+                                        enabled = !isSubmitting
+                                    )
+                                    TTButton(
+                                        text = "Guardar Obra",
+                                        onClick = {
+                                            if (code.isBlank() || name.isBlank()) {
+                                                formError = "Ingrese código y nombre de obra."
+                                                return@TTButton
+                                            }
+                                            val budget = budgetText.toDoubleOrNull() ?: 0.0
+                                            isSubmitting = true
+                                            viewModel.createProject(code, name, location, budget, managerName) { success, err ->
+                                                isSubmitting = false
+                                                if (success) {
+                                                    showCreateDialog = false
+                                                } else {
+                                                    formError = err ?: "Error al registrar la obra."
+                                                }
+                                            }
+                                        },
+                                        variant = TTButtonVariant.Primary,
+                                        loading = isSubmitting,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                            }
                         }
                     }
                 }

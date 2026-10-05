@@ -38,4 +38,28 @@ class ProjectsViewModel : ViewModel() {
             }
         }
     }
+
+    fun createProject(code: String, name: String, location: String, budget: Double, managerName: String, onComplete: (Boolean, String?) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val body = mapOf(
+                    "code" to code,
+                    "name" to name,
+                    "location" to location,
+                    "budget" to budget,
+                    "managerName" to managerName,
+                    "status" to "EN_PROCESO"
+                )
+                val res = RetrofitClient.api.createProject(body)
+                if (res.isSuccessful) {
+                    loadProjects()
+                    onComplete(true, null)
+                } else {
+                    onComplete(false, res.body()?.error?.message ?: "Error al registrar la obra.")
+                }
+            } catch (e: Exception) {
+                onComplete(false, e.message ?: "Error de conexión.")
+            }
+        }
+    }
 }

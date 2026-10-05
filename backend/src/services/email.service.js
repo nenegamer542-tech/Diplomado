@@ -9,7 +9,7 @@ const logger = require('../config/logger');
  * Integra la plantilla HTML corporativa de Tec[ode ERP Constructor.
  */
 
-function getWelcomeHtml({ name, email, companyName, roleName }) {
+function getWelcomeHtml({ name, email, password, companyName, roleName }) {
   const loginUrl = 'https://tectode-erp.pages.dev';
   return `
 <!DOCTYPE html>
@@ -64,6 +64,9 @@ function getWelcomeHtml({ name, email, companyName, roleName }) {
                     <p style="margin: 4px 0; font-size: 14px; color: #E5E7EB;">
                       <strong style="color: #9CA3AF;">Correo Electrónico:</strong> ${email}
                     </p>
+                    <p style="margin: 4px 0; font-size: 14px; color: #E5E7EB;">
+                      <strong style="color: #9CA3AF;">Contraseña de Acceso:</strong> <span style="color: #B6FF00; font-family: monospace; font-weight: bold; font-size: 16px;">${password || 'Password123!'}</span>
+                    </p>
                     ${companyName ? `<p style="margin: 4px 0; font-size: 14px; color: #E5E7EB;"><strong style="color: #9CA3AF;">Empresa Constructora:</strong> ${companyName}</p>` : ''}
                     ${roleName ? `<p style="margin: 4px 0; font-size: 14px; color: #E5E7EB;"><strong style="color: #9CA3AF;">Rol Asignado:</strong> ${roleName}</p>` : ''}
                   </td>
@@ -111,8 +114,14 @@ async function sendEmail({ to, subject, html }) {
     return { success: true, simulated: true };
   }
 
+  // Valida y limpia el formato del remitente
+  let fromAddress = env.resend.fromEmail || 'onboarding@resend.dev';
+  if (!fromAddress.includes('@') || !fromAddress.includes('>')) {
+    fromAddress = 'onboarding@resend.dev';
+  }
+
   const payload = JSON.stringify({
-    from: env.resend.fromEmail,
+    from: fromAddress,
     to: Array.isArray(to) ? to : [to],
     subject,
     html,
@@ -154,8 +163,8 @@ async function sendEmail({ to, subject, html }) {
   });
 }
 
-async function sendWelcomeEmail({ email, name, companyName, roleName }) {
-  const html = getWelcomeHtml({ email, name, companyName, roleName });
+async function sendWelcomeEmail({ email, name, password, companyName, roleName }) {
+  const html = getWelcomeHtml({ email, name, password, companyName, roleName });
   return sendEmail({
     to: email,
     subject: '¡Bienvenido a Tec[ode ERP Constructor! 🏗️',

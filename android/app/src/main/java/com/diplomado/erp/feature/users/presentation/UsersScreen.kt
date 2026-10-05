@@ -30,7 +30,7 @@ fun UsersScreen(
     var name by remember { mutableStateOf("") }
     var lastName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("Password123!") }
+    var password by remember { mutableStateOf("") }
     var selectedRoleId by remember { mutableStateOf("") }
     var formError by remember { mutableStateOf<String?>(null) }
     var isSubmitting by remember { mutableStateOf(false) }
@@ -47,7 +47,14 @@ fun UsersScreen(
                 )
             }
             is UsersUiState.Success -> {
-                val defaultRole = state.roles.firstOrNull { it.code == "supervisor" || it.code == "administrador" || it.code == "gerente" } ?: state.roles.firstOrNull()
+                // Ordenar roles prioritarios para el sector construcción
+                val roleOrder = listOf("administrador", "gerente", "supervisor", "trabajador", "almacen", "compras", "finanzas", "rrhh", "produccion", "auditor", "consulta")
+                val sortedRoles = state.roles.sortedBy { role ->
+                    val index = roleOrder.indexOf(role.code)
+                    if (index >= 0) index else 99
+                }
+
+                val defaultRole = sortedRoles.firstOrNull()
                 if (selectedRoleId.isEmpty() && defaultRole != null) {
                     selectedRoleId = defaultRole.id
                 }
@@ -61,7 +68,7 @@ fun UsersScreen(
                             name = ""
                             lastName = ""
                             email = ""
-                            password = "Password123!"
+                            password = ""
                             formError = null
                             showDialog = true
                         }
@@ -93,7 +100,6 @@ fun UsersScreen(
                                 TTBadge(status = user.status)
                             }
 
-                            // BOTON ELIMINAR USUARIO (Si tiene permiso users.delete y no es el usuario actual)
                             if (PermissionChecker.hasPermission("users.delete") && user.email != TokenStorage.getUserEmail()) {
                                 Spacer(modifier = Modifier.height(8.dp))
                                 TTButton(
@@ -107,7 +113,7 @@ fun UsersScreen(
                     }
                 }
 
-                // DIALOGO CONFIRMAR ELIMINACION DE USUARIO
+                // DIALOGO CONFIRMAR ELIMINACION
                 if (userToDelete != null) {
                     androidx.compose.ui.window.Dialog(onDismissRequest = { if (!isSubmitting) userToDelete = null }) {
                         TTCard(modifier = Modifier.fillMaxWidth()) {
@@ -153,7 +159,7 @@ fun UsersScreen(
                     }
                 }
 
-                // DIALOGO CREAR NUEVO USUARIO CON SELECCION DE ROL Y CONTRASEÑA
+                // DIALOGO CREAR NUEVO USUARIO
                 if (showDialog) {
                     androidx.compose.ui.window.Dialog(onDismissRequest = { if (!isSubmitting) showDialog = false }) {
                         TTCard(modifier = Modifier.fillMaxWidth()) {
@@ -169,7 +175,7 @@ fun UsersScreen(
                                 )
 
                                 Text(
-                                    text = "Al guardar, se enviará un correo de bienvenida con la contraseña asignada vía Resend.",
+                                    text = "Asigne los datos del usuario. La contraseña que escriba le llegará por correo de bienvenida vía Resend.",
                                     fontSize = 12.sp,
                                     color = TecodeTextMuted
                                 )
@@ -207,8 +213,8 @@ fun UsersScreen(
                                 TTTextField(
                                     value = password,
                                     onValueChange = { password = it },
-                                    label = "Contraseña de Acceso",
-                                    placeholder = "Password123!",
+                                    label = "Contraseña de Acceso para este Usuario",
+                                    placeholder = "Escriba la contraseña (mínimo 8 caracteres)",
                                     isPassword = true
                                 )
 
@@ -221,7 +227,7 @@ fun UsersScreen(
                                 )
 
                                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    state.roles.take(6).forEach { role ->
+                                    sortedRoles.forEach { role ->
                                         val isSelected = selectedRoleId == role.id
                                         TTCard(
                                             modifier = Modifier
@@ -259,10 +265,14 @@ fun UsersScreen(
                                         enabled = !isSubmitting
                                     )
                                     TTButton(
-                                        text = "Guardar",
+                                        text = "Guardar Usuario",
                                         onClick = {
                                             if (name.isBlank() || email.isBlank() || password.isBlank()) {
-                                                formError = "Ingrese nombre, correo y contraseña."
+                                                formError = "Ingrese nombre, correo y contraseña de acceso."
+                                                return@TTButton
+                                            }
+                                            if (password.length < 8) {
+                                                formError = "La contraseña debe tener al menos 8 caracteres."
                                                 return@TTButton
                                             }
                                             if (selectedRoleId.isBlank()) {
