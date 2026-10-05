@@ -42,7 +42,7 @@ const Project = require('../modules/projects/project.model');
 const CostCenter = require('../modules/cost-centers/cost_center.model');
 const Bom = require('../modules/production/bom.model');
 
-const DEMO_COMPANY_NAME = 'Empresa Demo S.A.';
+const DEMO_COMPANY_NAME = 'Empresa Constructora Tec[ode';
 const DEMO_ADMIN_EMAIL = 'admin@demo.example.com';
 
 const withDemo = process.argv.slice(2).includes('--demo');
@@ -98,20 +98,23 @@ async function ensureSuperAdmin(role, password) {
 }
 
 async function ensureDemoTenant(password) {
-  let company = await Company.findOne({ name: DEMO_COMPANY_NAME });
+  let company = await Company.findOne({ $or: [{ name: DEMO_COMPANY_NAME }, { name: 'Empresa Demo S.A.' }] });
   if (!company) {
     company = await Company.create({
       name: DEMO_COMPANY_NAME,
-      legalName: 'Empresa Demo Sociedad Anónima',
-      taxId: 'XAXX010101000',
-      email: 'demo@example.com',
+      legalName: 'Empresa Constructora Tec[ode S.A. de C.V.',
+      taxId: 'TEC260930AAA',
+      email: 'contacto@teccode.com',
       currency: 'MXN',
       timezone: 'America/Mexico_City',
       status: 'active',
     });
-    console.log(`[seed] Empresa demo creada: ${company.name}`);
+    console.log(`[seed] Empresa constructora creada: ${company.name}`);
   } else {
-    console.log('[seed] Empresa demo: ya existe.');
+    company.name = DEMO_COMPANY_NAME;
+    company.legalName = 'Empresa Constructora Tec[ode S.A. de C.V.';
+    await company.save();
+    console.log(`[seed] Empresa constructora actualizada: ${company.name}`);
   }
 
   let branch = await Branch.findOne({ companyId: company._id, code: 'MAIN' });
