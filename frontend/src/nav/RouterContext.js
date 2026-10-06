@@ -1,16 +1,32 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 /**
- * Router mínimo SIN dependencias (React Navigation no es necesario para FASE 7):
- * pila de rutas en estado, apto para web y móvil con los mismos componentes.
- *  - navigate(name, params): empuja (botón "atrás" disponible).
- *  - go(name, params): reemplaza la pila (menú lateral: evita apilar clics).
- *  - back(): regresa un nivel.
+ * Router mínimo con persistencia de ruta activa para Web (hash) y Móvil (storage).
+ * Preserva la pantalla exacta al recargar la página (F5) o reabrir la aplicación.
  */
 const RouterContext = createContext(null);
 
+function getInitialRoute() {
+  try {
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash.replace(/^#\/?/, '');
+      if (hash) {
+        return { name: hash, params: {} };
+      }
+      const saved = window.localStorage.getItem('tectode_erp_last_route');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.name) return parsed;
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  return { name: 'home', params: {} };
+}
+
 export function RouterProvider({ children }) {
-  const [stack, setStack] = useState([{ name: 'home', params: {} }]);
+  const [stack, setStack] = useState(() => [getInitialRoute()]);
 
   const navigate = useCallback((name, params = {}) => {
     setStack((s) => [...s, { name, params }]);
@@ -25,6 +41,17 @@ export function RouterProvider({ children }) {
   }, []);
 
   const route = stack[stack.length - 1];
+
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined' && route?.name) {
+        window.location.hash = `#/${route.name}`;
+        window.localStorage.setItem('tectode_erp_last_route', JSON.stringify(route));
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [route]);
 
   const value = useMemo(
     () => ({ route, navigate, go, back, canGoBack: stack.length > 1 }),

@@ -93,9 +93,9 @@ function Table({ columns, rows, empty }) {
   );
 }
 
-/** Reportes (FASE 5): KPI, ventas, compras, finanzas, presupuestos e inventario. */
+/** Reportes (FASE 5): KPI, ventas, compras, finanzas, presupuestos e inventario con membrete oficial Tec[ode. */
 export default function ReportsScreen() {
-  const { can } = useAuth();
+  const { session, can } = useAuth();
   const [tab, setTab] = useState('kpis');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
@@ -144,6 +144,14 @@ export default function ReportsScreen() {
       }
     } catch (e) {
       setExportError(e.message);
+    }
+  };
+
+  const printReport = () => {
+    if (Platform.OS === 'web') {
+      window.print();
+    } else {
+      Alert.alert('Impresión PDF', 'La impresión/exportación PDF está disponible en la versión Web.');
     }
   };
 
@@ -301,6 +309,19 @@ export default function ReportsScreen() {
 
   return (
     <View style={styles.wrap}>
+      {/* Membrete Oficial Tec[ode ERP CONSTRUCTOR */}
+      <View style={styles.brandHeader}>
+        <View style={styles.brandTitleRow}>
+          <Text style={styles.brandPrefix}>Tec</Text>
+          <Text style={styles.brandBracket}>[</Text>
+          <Text style={styles.brandSuffix}>ode</Text>
+          <Text style={styles.brandTagline}> ERP CONSTRUCTOR</Text>
+        </View>
+        <Text style={styles.brandSub}>
+          {session?.company?.name || 'Empresa Constructora Tec[ode S.A. de C.V.'} · Reporte Emitido: {new Date().toLocaleDateString('es-MX')}
+        </Text>
+      </View>
+
       <View style={styles.tabs}>
         {TABS.map((t) => (
           <Pressable
@@ -340,6 +361,9 @@ export default function ReportsScreen() {
         <TTButton variant="secondary" size="md" onPress={report.reload}>
           Actualizar
         </TTButton>
+        <TTButton variant="secondary" size="md" onPress={printReport}>
+          🖨️ Imprimir / PDF
+        </TTButton>
         {can('reports.export') ? (
           <TTButton variant="primary" size="md" onPress={exportCsv}>
             Exportar CSV
@@ -356,6 +380,20 @@ export default function ReportsScreen() {
 
 const styles = StyleSheet.create({
   wrap: { gap: SPACING.md },
+  brandHeader: {
+    padding: SPACING.md,
+    backgroundColor: COLORS.card,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.accent,
+    marginBottom: SPACING.xs,
+  },
+  brandTitleRow: { flexDirection: 'row', alignItems: 'center' },
+  brandPrefix: { fontSize: 22, fontWeight: '800', color: COLORS.textPrimary },
+  brandBracket: { fontSize: 22, fontWeight: '900', color: COLORS.accent },
+  brandSuffix: { fontSize: 22, fontWeight: '800', color: COLORS.textPrimary },
+  brandTagline: { fontSize: 13, fontWeight: '700', color: COLORS.accent, letterSpacing: 0.8 },
+  brandSub: { fontSize: TYPOGRAPHY.fontSize.xs, color: COLORS.textMuted, marginTop: 4 },
   tabs: { flexDirection: 'row', gap: SPACING.xs, flexWrap: 'wrap' },
   tab: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.xs + 2, borderRadius: RADIUS.pill, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border },
   tabOn: { backgroundColor: `${COLORS.accent}20`, borderColor: COLORS.accent },
