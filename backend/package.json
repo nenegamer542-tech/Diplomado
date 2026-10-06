@@ -6,7 +6,7 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "build": "echo 'No build step required for Express backend'",
+    "build": "npm --prefix ../frontend install && npm --prefix ../frontend run export:web",
     "migrate:single-company": "echo 'No migration required'",
     "dev": "nodemon src/server.js",
     "seed": "node src/scripts/seed.js",

@@ -79,8 +79,17 @@ app.use(
   })
 );
 
-/** Root greeting endpoint para Render health pings. */
+const fs = require('fs');
+const path = require('path');
+
+const webDistPath = path.resolve(__dirname, '../../frontend/dist');
+
+/** Servidor de la Plataforma Web Tec[ode ERP Constructor. */
 app.get('/', (req, res) => {
+  const indexPath = path.join(webDistPath, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    return res.sendFile(indexPath);
+  }
   res.json({
     success: true,
     data: {
@@ -91,6 +100,10 @@ app.get('/', (req, res) => {
     }
   });
 });
+
+if (fs.existsSync(webDistPath)) {
+  app.use(express.static(webDistPath));
+}
 
 /** Health check público para monitoreo/load balancer. */
 app.get('/health', (req, res) => {
