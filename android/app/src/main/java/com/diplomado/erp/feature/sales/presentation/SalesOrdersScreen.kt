@@ -12,8 +12,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diplomado.erp.core.common.rbac.PermissionChecker
-import com.diplomado.erp.ui.components.*
-import com.diplomado.erp.ui.theme.*
+import com.diplomado.erp.ui.components.TTBadge
+import com.diplomado.erp.ui.components.TTButton
+import com.diplomado.erp.ui.components.TTButtonVariant
+import com.diplomado.erp.ui.components.TTCard
+import com.diplomado.erp.ui.components.TTDataTable
+import com.diplomado.erp.ui.components.TTEmptyState
+import com.diplomado.erp.ui.components.TTLoading
+import com.diplomado.erp.ui.components.TTTextField
+import com.diplomado.erp.ui.theme.TecodeError
+import com.diplomado.erp.ui.theme.TecodeTextMuted
+import com.diplomado.erp.ui.theme.TecodeTextPrimary
 
 @Composable
 fun SalesOrdersScreen(
