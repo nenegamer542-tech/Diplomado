@@ -15,12 +15,8 @@ sealed class NavItem(val route: String, val title: String, val icon: ImageVector
     data object Dashboard : NavItem("dashboard", "Inicio", Icons.Default.Bolt, null)
     data object Projects : NavItem("projects", "Mis Obras", Icons.Default.Apartment, "projects.read")
     data object Products : NavItem("products", "Materiales", Icons.Default.Category, "products.read")
-    data object Users : NavItem("users", "Usuarios", Icons.Default.Group, "users.read")
-    data object Stock : NavItem("stock", "Existencias", Icons.Default.BarChart, "inventory.read")
     data object Purchases : NavItem("purchases", "Compras", Icons.Default.ShoppingCart, "purchases.read")
-    data object Sales : NavItem("sales", "Ventas", Icons.Default.LocalOffer, "sales.orders.read")
-    data object Finance : NavItem("finance", "Gastos", Icons.Default.AccountBalance, "finance.accounts.read")
-    data object More : NavItem("more", "Menú", Icons.Default.Menu, null)
+    data object More : NavItem("more", "Menú Módulos", Icons.Default.GridView, null)
 }
 
 @Composable
@@ -29,19 +25,15 @@ fun TTBottomBar(
     onNavigate: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val allItems = listOf(
+    val items = listOf(
         NavItem.Dashboard,
         NavItem.Projects,
         NavItem.Products,
-        NavItem.Users,
         NavItem.Purchases,
-        NavItem.Finance,
         NavItem.More
-    )
-
-    val items = allItems.filter { item ->
+    ).filter { item ->
         item.permission == null || PermissionChecker.hasPermission(item.permission)
-    }.take(5) // Máximo 5 ítems en BottomBar
+    }
 
     NavigationBar(
         modifier = modifier,

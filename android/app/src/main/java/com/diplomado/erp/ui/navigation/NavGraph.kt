@@ -14,8 +14,11 @@ import androidx.navigation.navArgument
 import com.diplomado.erp.core.security.TokenStorage
 import com.diplomado.erp.feature.auth.presentation.LoginScreen
 import com.diplomado.erp.feature.configuration.presentation.AuditScreen
+import com.diplomado.erp.feature.configuration.presentation.MoreScreen
+import com.diplomado.erp.feature.crm.presentation.LeadsScreen
 import com.diplomado.erp.feature.dashboard.presentation.DashboardScreen
 import com.diplomado.erp.feature.finance.presentation.AccountsScreen
+import com.diplomado.erp.feature.hr.presentation.EmployeesScreen
 import com.diplomado.erp.feature.inventory.movements.presentation.MovementsScreen
 import com.diplomado.erp.feature.inventory.products.presentation.ProductsScreen
 import com.diplomado.erp.feature.inventory.stock.presentation.StockScreen
@@ -127,6 +130,9 @@ fun MainContainer(
             composable(NavDestination.Stock.route) {
                 StockScreen()
             }
+            composable(NavDestination.Movements.route) {
+                MovementsScreen()
+            }
             composable(NavDestination.Purchases.route) {
                 PurchaseOrdersScreen()
             }
@@ -136,8 +142,14 @@ fun MainContainer(
             composable(NavDestination.Finance.route) {
                 AccountsScreen()
             }
+            composable(NavDestination.Leads.route) {
+                LeadsScreen()
+            }
+            composable(NavDestination.Employees.route) {
+                EmployeesScreen()
+            }
             composable(NavDestination.More.route) {
-                AuditScreen()
+                MoreScreen(onNavigate = { route -> innerNavController.navigate(route) })
             }
         }
     }
