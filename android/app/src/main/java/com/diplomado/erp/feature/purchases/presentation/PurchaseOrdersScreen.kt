@@ -1,10 +1,10 @@
 package com.diplomado.erp.feature.purchases.presentation
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -21,13 +21,18 @@ fun PurchaseOrdersScreen(
     viewModel: PurchaseOrdersViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var showDialog by remember { mutableStateOf(false) }
+
+    var notes by remember { mutableStateOf("") }
+    var formError by remember { mutableStateOf<String?>(null) }
+    var isSubmitting by remember { mutableStateOf(false) }
 
     Box(modifier = modifier.fillMaxSize().padding(16.dp)) {
         when (val state = uiState) {
-            is PurchaseOrdersUiState.Loading -> TTLoading(text = "Cargando órdenes de compra de materiales...")
+            is PurchaseOrdersUiState.Loading -> TTLoading(text = "Cargando órdenes de compra para obra...")
             is PurchaseOrdersUiState.Error -> {
                 TTEmptyState(
-                    title = "Error de compras de obra",
+                    title = "Error de compras",
                     description = state.message,
                     actionLabel = "Reintentar",
                     onAction = { viewModel.loadOrders() }
@@ -35,11 +40,15 @@ fun PurchaseOrdersScreen(
             }
             is PurchaseOrdersUiState.Success -> {
                 TTDataTable(
-                    title = "Órdenes de Compra para Obra",
-                    subtitle = "${state.orders.size} compras de insumos registradas",
+                    title = "Compras para Obra",
+                    subtitle = "${state.orders.size} solicitudes registradas",
                     items = state.orders,
                     onCreateClick = if (PermissionChecker.hasPermission("purchases.create")) {
-                        { /* Crear orden de compra */ }
+                        {
+                            notes = ""
+                            formError = null
+                            showDialog = true
+                        }
                     } else null,
                     createLabel = "Nueva compra",
                     emptyText = "Sin órdenes de compra para obra registradas."
@@ -71,19 +80,84 @@ fun PurchaseOrdersScreen(
                             if (order.status == "DRAFT" && PermissionChecker.hasPermission("purchases.approve")) {
                                 Spacer(modifier = Modifier.height(12.dp))
                                 Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    modifier = Modifier.fillMaxWidth()
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
+                                    TTButton(
+                                        text = "Rechazar",
+                                        onClick = { viewModel.rejectOrder(order.id, "Rechazado desde App") },
+                                        variant = TTButtonVariant.Danger,
+                                        modifier = Modifier.weight(1f)
+                                    )
                                     TTButton(
                                         text = "Aprobar y Recibir",
                                         onClick = { viewModel.approveOrder(order.id) },
                                         variant = TTButtonVariant.Primary,
                                         modifier = Modifier.weight(1f)
                                     )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // DIALOGO CREAR NUEVA SOLICITUD DE COMPRA
+                if (showDialog) {
+                    androidx.compose.ui.window.Dialog(onDismissRequest = { if (!isSubmitting) showDialog = false }) {
+                        TTCard(modifier = Modifier.fillMaxWidth()) {
+                            Column(
+                                modifier = Modifier.verticalScroll(rememberScrollState()),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Text(
+                                    text = "Nueva Orden de Compra",
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TecodeTextPrimary
+                                )
+
+                                if (formError != null) {
+                                    Text(
+                                        text = "⚠️ $formError",
+                                        fontSize = 12.sp,
+                                        color = TecodeError,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+
+                                TTTextField(
+                                    value = notes,
+                                    onValueChange = { notes = it },
+                                    label = "Justificación / Notas de la Compra",
+                                    placeholder = "Compra urgente de 50 sacos de cemento para colado"
+                                )
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
                                     TTButton(
-                                        text = "Rechazar",
-                                        onClick = { viewModel.rejectOrder(order.id, "Rechazado desde App Tec[ode") },
-                                        variant = TTButtonVariant.Danger,
+                                        text = "Cancelar",
+                                        onClick = { showDialog = false },
+                                        variant = TTButtonVariant.Ghost,
+                                        modifier = Modifier.weight(1f),
+                                        enabled = !isSubmitting
+                                    )
+                                    TTButton(
+                                        text = "Guardar Compra",
+                                        onClick = {
+                                            isSubmitting = true
+                                            viewModel.createOrder(notes) { success, err ->
+                                                isSubmitting = false
+                                                if (success) {
+                                                    showDialog = false
+                                                } else {
+                                                    formError = err ?: "Error al registrar la compra."
+                                                }
+                                            }
+                                        },
+                                        variant = TTButtonVariant.Primary,
+                                        loading = isSubmitting,
                                         modifier = Modifier.weight(1f)
                                     )
                                 }

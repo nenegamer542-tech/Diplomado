@@ -39,4 +39,27 @@ class AccountsViewModel : ViewModel() {
             }
         }
     }
+
+    fun createAccount(code: String, name: String, type: String, onComplete: (Boolean, String?) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val body = mapOf(
+                    "code" to code,
+                    "name" to name,
+                    "type" to type.ifEmpty { "cash" },
+                    "currency" to "MXN",
+                    "status" to "active"
+                )
+                val res = RetrofitClient.api.createFinanceAccount(body)
+                if (res.isSuccessful) {
+                    loadAccounts()
+                    onComplete(true, null)
+                } else {
+                    onComplete(false, res.body()?.error?.message ?: "Error al registrar la caja chica o cuenta.")
+                }
+            } catch (e: Exception) {
+                onComplete(false, e.message ?: "Error de conexión.")
+            }
+        }
+    }
 }

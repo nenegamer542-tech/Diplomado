@@ -40,6 +40,26 @@ class PurchaseOrdersViewModel : ViewModel() {
         }
     }
 
+    fun createOrder(notes: String, onComplete: (Boolean, String?) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val body = mapOf(
+                    "notes" to notes.ifEmpty { "Solicitud de Insumos de Obra" },
+                    "lines" to emptyList<Any>()
+                )
+                val res = RetrofitClient.api.createPurchaseOrder(body)
+                if (res.isSuccessful) {
+                    loadOrders()
+                    onComplete(true, null)
+                } else {
+                    onComplete(false, res.body()?.error?.message ?: "Error al registrar la compra.")
+                }
+            } catch (e: Exception) {
+                onComplete(false, e.message ?: "Error de conexión.")
+            }
+        }
+    }
+
     fun approveOrder(id: String) {
         viewModelScope.launch {
             try {

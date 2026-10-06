@@ -32,10 +32,30 @@ class SalesOrdersViewModel : ViewModel() {
                 if (res.isSuccessful && res.body()?.data != null) {
                     _uiState.value = SalesOrdersUiState.Success(res.body()!!.data!!)
                 } else {
-                    _uiState.value = SalesOrdersUiState.Error(res.body()?.error?.message ?: "Error al cargar pedidos de venta.")
+                    _uiState.value = SalesOrdersUiState.Error(res.body()?.error?.message ?: "Error al cargar estimaciones.")
                 }
             } catch (e: Exception) {
                 _uiState.value = SalesOrdersUiState.Error(e.message ?: "Error de red.")
+            }
+        }
+    }
+
+    fun createOrder(notes: String, onComplete: (Boolean, String?) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val body = mapOf(
+                    "notes" to notes.ifEmpty { "Estimación de avance de obra" },
+                    "lines" to emptyList<Any>()
+                )
+                val res = RetrofitClient.api.createSalesOrder(body)
+                if (res.isSuccessful) {
+                    loadOrders()
+                    onComplete(true, null)
+                } else {
+                    onComplete(false, res.body()?.error?.message ?: "Error al registrar la estimación.")
+                }
+            } catch (e: Exception) {
+                onComplete(false, e.message ?: "Error de conexión.")
             }
         }
     }
@@ -47,7 +67,7 @@ class SalesOrdersViewModel : ViewModel() {
                 if (res.isSuccessful) {
                     loadOrders()
                 } else {
-                    _uiState.value = SalesOrdersUiState.Error(res.body()?.error?.message ?: "Stock insuficiente para aprobar pedido.")
+                    _uiState.value = SalesOrdersUiState.Error(res.body()?.error?.message ?: "No se pudo aprobar la estimación.")
                 }
             } catch (e: Exception) {
                 _uiState.value = SalesOrdersUiState.Error(e.message ?: "Error de conexión.")
