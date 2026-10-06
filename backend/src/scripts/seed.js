@@ -344,35 +344,32 @@ async function ensureDemoTenant(password) {
     }
   }
   console.log(`[seed] ${realProjects.length} obras reales de construcción creadas.`);
-      managerName: 'Ing. Sofia Ramírez',
-      startDate: new Date('2026-03-01'),
-      estimatedEndDate: new Date('2027-02-28'),
-    });
-    console.log(`[seed] Obra demo creada: ${p2.code} - ${p2.name}`);
-  }
 
   // Centros de Costo
-  let cc1 = await CostCenter.findOne({ companyId: company._id, projectId: p1._id, code: 'CC-MAT-01' });
-  if (!cc1) {
-    await CostCenter.create({
-      companyId: company._id,
-      projectId: p1._id,
-      code: 'CC-MAT-01',
-      name: 'Partida Materiales y Estructura',
-      category: 'MATERIALES',
-      budget: 1000000.0,
-      executedAmount: 550000.0,
-    });
-    await CostCenter.create({
-      companyId: company._id,
-      projectId: p1._id,
-      code: 'CC-MOB-01',
-      name: 'Partida Mano de Obra y Cuadrillas',
-      category: 'MANO_DE_OBRA',
-      budget: 500000.0,
-      executedAmount: 270000.0,
-    });
-    console.log(`[seed] Centros de costo demo creados para ${p1.code}`);
+  const p1 = await Project.findOne({ companyId: company._id, code: 'OBRA-001' });
+  if (p1) {
+    let cc1 = await CostCenter.findOne({ companyId: company._id, projectId: p1._id, code: 'CC-MAT-01' });
+    if (!cc1) {
+      await CostCenter.create({
+        companyId: company._id,
+        projectId: p1._id,
+        code: 'CC-MAT-01',
+        name: 'Partida Materiales y Estructura',
+        category: 'MATERIALES',
+        budget: 1000000.0,
+        executedAmount: 550000.0,
+      });
+      await CostCenter.create({
+        companyId: company._id,
+        projectId: p1._id,
+        code: 'CC-MOB-01',
+        name: 'Partida Mano de Obra y Cuadrillas',
+        category: 'MANO_DE_OBRA',
+        budget: 500000.0,
+        executedAmount: 270000.0,
+      });
+      console.log(`[seed] Centros de costo demo creados para ${p1.code}`);
+    }
   }
 
   return { company, adminUser };
