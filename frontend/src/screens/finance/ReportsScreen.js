@@ -4,6 +4,7 @@ import {
   Alert,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -70,26 +71,28 @@ function useReport(path, query, enabled) {
 }
 
 function Table({ columns, rows, empty }) {
-  if (!rows || rows.length === 0) return <Text style={styles.empty}>{empty || 'Sin datos.'}</Text>;
+  if (!rows || rows.length === 0) return <Text style={styles.empty}>{empty || 'Sin registros en el periodo.'}</Text>;
   return (
-    <View style={styles.table}>
-      <View style={[styles.tr, styles.trHead]}>
-        {columns.map((c) => (
-          <Text key={c.key} style={[styles.th, { minWidth: c.width || 100 }]}>
-            {c.label}
-          </Text>
-        ))}
-      </View>
-      {rows.map((r, i) => (
-        <View key={i} style={styles.tr}>
+    <ScrollView horizontal showsHorizontalScrollIndicator={true} style={{ maxWidth: '100%', marginVertical: SPACING.xs }}>
+      <View style={styles.table}>
+        <View style={[styles.tr, styles.trHead]}>
           {columns.map((c) => (
-            <View key={c.key} style={{ minWidth: c.width || 100, paddingVertical: 8, paddingRight: 6 }}>
-              {c.render ? c.render(r) : <Text style={styles.td}>{String(r[c.key] ?? '—')}</Text>}
-            </View>
+            <Text key={c.key} style={[styles.th, { width: c.width || 120 }]}>
+              {c.label}
+            </Text>
           ))}
         </View>
-      ))}
-    </View>
+        {rows.map((r, i) => (
+          <View key={i} style={styles.tr}>
+            {columns.map((c) => (
+              <View key={c.key} style={{ width: c.width || 120, paddingVertical: 10, paddingRight: 8 }}>
+                {c.render ? c.render(r) : <Text style={styles.td}>{String(r[c.key] ?? '—')}</Text>}
+              </View>
+            ))}
+          </View>
+        ))}
+      </View>
+    </ScrollView>
   );
 }
 
@@ -240,13 +243,13 @@ export default function ReportsScreen() {
             rows={d.expenseByCategory}
             empty="Sin gastos en el rango."
           />
-          <Text style={styles.h2}>Cuentas</Text>
+          <Text style={styles.h2}>Cuentas y Cajas Chicas</Text>
           <Table
             columns={[
-              { key: 'code', label: 'Código', width: 90 },
-              { key: 'name', label: 'Nombre', width: 160 },
+              { key: 'code', label: 'Código', width: 110 },
+              { key: 'name', label: 'Nombre', width: 220 },
               { key: 'currency', label: 'Moneda', width: 80 },
-              { key: 'balance', label: 'Saldo', width: 120, render: (r) => <Text style={styles.td}>{money(r.balance)}</Text> },
+              { key: 'balance', label: 'Saldo Disponible', width: 140, render: (r) => <Text style={styles.td}>{money(r.balance)}</Text> },
               { key: 'status', label: 'Estado', width: 100, render: (r) => <StatusBadge value={r.status} /> },
             ]}
             rows={d.cash?.accounts}
@@ -266,14 +269,14 @@ export default function ReportsScreen() {
           </View>
           <Table
             columns={[
-              { key: 'category', label: 'Categoría', width: 150 },
-              { key: 'planned', label: 'Planeado', width: 110, render: (r) => <Text style={styles.td}>{money(r.planned)}</Text> },
-              { key: 'actual', label: 'Ejecutado', width: 110, render: (r) => <Text style={styles.td}>{money(r.actual)}</Text> },
-              { key: 'variance', label: 'Variación', width: 110, render: (r) => <Text style={styles.td}>{money(r.variance)}</Text> },
+              { key: 'category', label: 'Categoría', width: 180 },
+              { key: 'planned', label: 'Planeado', width: 130, render: (r) => <Text style={styles.td}>{money(r.planned)}</Text> },
+              { key: 'actual', label: 'Ejecutado', width: 130, render: (r) => <Text style={styles.td}>{money(r.actual)}</Text> },
+              { key: 'variance', label: 'Variación', width: 130, render: (r) => <Text style={styles.td}>{money(r.variance)}</Text> },
               {
                 key: 'utilization',
                 label: 'Uso %',
-                width: 80,
+                width: 90,
                 render: (r) => <Text style={styles.td}>{r.utilization === null || r.utilization === undefined ? '—' : `${r.utilization}%`}</Text>,
               },
             ]}
@@ -289,16 +292,16 @@ export default function ReportsScreen() {
       <>
         <View style={styles.cards}>
           <TTStatCard label="Valor a costo" value={money(d.totalValue)} icon="💰" />
-          <TTStatCard label="Unidades" value={String(d.totalQuantity ?? 0)} icon="📦" />
+          <TTStatCard label="Unidades Totales" value={String(d.totalQuantity ?? 0)} icon="📦" />
           <TTStatCard label="Stock bajo" value={String(d.lowStock ?? 0)} icon="⚠️" accentColor={COLORS.error} />
         </View>
         <Table
           columns={[
-            { key: 'sku', label: 'SKU', width: 110 },
-            { key: 'name', label: 'Producto', width: 190 },
-            { key: 'quantity', label: 'Cant.', width: 80 },
-            { key: 'costPrice', label: 'Costo', width: 100, render: (r) => <Text style={styles.td}>{money(r.costPrice)}</Text> },
-            { key: 'value', label: 'Valor', width: 120, render: (r) => <Text style={styles.td}>{money(r.value)}</Text> },
+            { key: 'sku', label: 'SKU', width: 120 },
+            { key: 'name', label: 'Producto / Material', width: 260 },
+            { key: 'quantity', label: 'Existencia', width: 110 },
+            { key: 'costPrice', label: 'Costo Unit.', width: 110, render: (r) => <Text style={styles.td}>{money(r.costPrice)}</Text> },
+            { key: 'value', label: 'Valor Total', width: 130, render: (r) => <Text style={styles.td}>{money(r.value)}</Text> },
           ]}
           rows={d.items}
           empty="Sin existencias valorizadas."
@@ -414,7 +417,7 @@ const styles = StyleSheet.create({
   },
   cards: { flexDirection: 'row', gap: SPACING.md, flexWrap: 'wrap' },
   h2: { fontSize: TYPOGRAPHY.fontSize.md, fontWeight: TYPOGRAPHY.fontWeight.bold, color: COLORS.textPrimary, marginTop: SPACING.xs },
-  table: { backgroundColor: COLORS.card, borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.lg, overflow: 'hidden' },
+  table: { backgroundColor: COLORS.card, borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.lg, overflow: 'hidden', minWidth: '100%' },
   tr: { flexDirection: 'row', paddingHorizontal: SPACING.md, borderBottomWidth: 1, borderBottomColor: COLORS.border },
   trHead: { backgroundColor: COLORS.surface },
   th: { paddingVertical: SPACING.md, paddingRight: SPACING.sm, fontSize: TYPOGRAPHY.fontSize.xs, fontWeight: TYPOGRAPHY.fontWeight.bold, color: COLORS.textMuted, textTransform: 'uppercase' },
