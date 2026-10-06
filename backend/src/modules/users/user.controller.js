@@ -12,7 +12,7 @@ const list = asyncHandler(async (req, res) => {
   const { page, limit, skip, sort } = parsePagination(req.query);
 
   const extra = searchFilterMulti(['name', 'lastName', 'email'], req.query.search);
-  if (req.query.status) extra.status = req.query.status;
+  extra.status = req.query.status || 'active';
   if (req.query.roleId) extra.roleId = req.query.roleId;
   if (req.query.branchId) extra.branchId = req.query.branchId;
 
