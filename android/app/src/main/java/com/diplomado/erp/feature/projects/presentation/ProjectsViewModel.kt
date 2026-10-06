@@ -62,4 +62,21 @@ class ProjectsViewModel : ViewModel() {
             }
         }
     }
+
+    fun deleteProject(id: String, onComplete: (Boolean, String?) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val body = mapOf("status" to "CANCELADA")
+                val res = RetrofitClient.api.updateProject(id, body)
+                if (res.isSuccessful) {
+                    loadProjects()
+                    onComplete(true, null)
+                } else {
+                    onComplete(false, res.body()?.error?.message ?: "Error al cancelar/eliminar la obra.")
+                }
+            } catch (e: Exception) {
+                onComplete(false, e.message ?: "Error de conexión.")
+            }
+        }
+    }
 }

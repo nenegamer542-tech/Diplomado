@@ -12,6 +12,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diplomado.erp.core.common.rbac.PermissionChecker
+import com.diplomado.erp.core.network.dto.ProductDto
 import com.diplomado.erp.ui.components.*
 import com.diplomado.erp.ui.theme.*
 
@@ -23,6 +24,7 @@ fun ProductsScreen(
     val uiState by viewModel.uiState.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     var showDialog by remember { mutableStateOf(false) }
+    var productToDelete by remember { mutableStateOf<ProductDto?>(null) }
 
     var sku by remember { mutableStateOf("") }
     var name by remember { mutableStateOf("") }
@@ -69,38 +71,96 @@ fun ProductsScreen(
                     emptyText = "Sin materiales de construcción registrados."
                 ) { material ->
                     TTCard(modifier = Modifier.fillMaxWidth()) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = material.name,
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = TecodeTextPrimary
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = "SKU: ${material.sku} • Unidad: ${material.unit ?: "unidad"} • Costo: $${String.format("%.2f", material.costPrice ?: 0.0)}",
-                                    fontSize = 12.sp,
-                                    color = TecodeTextMuted
-                                )
-                                if ((material.minStock ?: 0.0) > 0) {
+                        Column {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "Stock mín: ${material.minStock} | Stock máx: ${material.maxStock ?: "N/A"}",
-                                        fontSize = 11.sp,
-                                        color = TecodeTextSecondary
+                                        text = material.name,
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TecodeTextPrimary
                                     )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = "SKU: ${material.sku} • Unidad: ${material.unit ?: "unidad"} • Costo: $${String.format("%.2f", material.costPrice ?: 0.0)}",
+                                        fontSize = 12.sp,
+                                        color = TecodeTextMuted
+                                    )
+                                    if ((material.minStock ?: 0.0) > 0) {
+                                        Text(
+                                            text = "Stock mín: ${material.minStock} | Stock máx: ${material.maxStock ?: "N/A"}",
+                                            fontSize = 11.sp,
+                                            color = TecodeTextSecondary
+                                        )
+                                    }
+                                }
+                                Column(horizontalAlignment = Alignment.End) {
+                                    TTBadge(status = material.status)
+                                    val mode = material.trackingMode ?: "none"
+                                    if (mode != "none" && mode.isNotEmpty()) {
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        TTBadge(status = "active", customLabel = "Control ${mode.uppercase()}")
+                                    }
                                 }
                             }
-                            Column(horizontalAlignment = Alignment.End) {
-                                TTBadge(status = material.status)
-                                val mode = material.trackingMode ?: "none"
-                                if (mode != "none" && mode.isNotEmpty()) {
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    TTBadge(status = "active", customLabel = "Control ${mode.uppercase()}")
+
+                            if (PermissionChecker.hasPermission("products.delete") || PermissionChecker.hasPermission("products.update")) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                TTButton(
+                                    text = "Eliminar Material",
+                                    onClick = { productToDelete = material },
+                                    variant = TTButtonVariant.Danger,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // DIALOGO MODAL CONFIRMAR ELIMINACION DE MATERIAL
+                if (productToDelete != null) {
+                    androidx.compose.ui.window.Dialog(onDismissRequest = { if (!isSubmitting) productToDelete = null }) {
+                        TTCard(modifier = Modifier.fillMaxWidth()) {
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Text(
+                                    text = "Confirmar Eliminación",
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TecodeError
+                                )
+                                Text(
+                                    text = "¿Está seguro de eliminar el material ${productToDelete?.name}?",
+                                    fontSize = 13.sp,
+                                    color = TecodeTextPrimary
+                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    TTButton(
+                                        text = "Cancelar",
+                                        onClick = { productToDelete = null },
+                                        variant = TTButtonVariant.Ghost,
+                                        modifier = Modifier.weight(1f),
+                                        enabled = !isSubmitting
+                                    )
+                                    TTButton(
+                                        text = "Eliminar",
+                                        onClick = {
+                                            isSubmitting = true
+                                            viewModel.deleteProduct(productToDelete!!.id) { _, _ ->
+                                                isSubmitting = false
+                                                productToDelete = null
+                                            }
+                                        },
+                                        variant = TTButtonVariant.Danger,
+                                        loading = isSubmitting,
+                                        modifier = Modifier.weight(1f)
+                                    )
                                 }
                             }
                         }

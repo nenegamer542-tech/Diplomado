@@ -142,35 +142,42 @@ async function ensureDemoTenant(password) {
     console.log('[seed] Almacén MAIN creado.');
   }
 
-  // Catálogos demo (FASE 3 + 4): producto, proveedor y cliente de ejemplo.
-  if (!(await Product.findOne({ companyId: company._id, sku: 'DEMO-001' }))) {
-    await Product.create({
-      companyId: company._id,
-      sku: 'DEMO-001',
-      name: 'Producto Demo',
-      unit: 'pza',
-      costPrice: 10,
-      salePrice: 15,
-      taxRate: 16,
-      minStock: 5,
-      status: 'active',
-    });
-    console.log('[seed] Producto demo DEMO-001 creado.');
+  // Catálogo Real de Materiales e Insumos de Construcción
+  const realMaterials = [
+    { sku: 'MAT-001', name: 'Cemento Gris CPC 30R 50 kg', unit: 'Saco', costPrice: 220.0, salePrice: 260.0, minStock: 50, maxStock: 2000 },
+    { sku: 'MAT-002', name: 'Varilla Corrugada 1/2" Grado 42 (12m)', unit: 'Pieza', costPrice: 185.0, salePrice: 215.0, minStock: 100, maxStock: 5000 },
+    { sku: 'MAT-003', name: 'Varilla Corrugada 3/8" Grado 42 (12m)', unit: 'Pieza', costPrice: 110.0, salePrice: 135.0, minStock: 100, maxStock: 5000 },
+    { sku: 'MAT-004', name: 'Arena de Mina Cernida para Obra', unit: 'm³', costPrice: 380.0, salePrice: 450.0, minStock: 20, maxStock: 500 },
+    { sku: 'MAT-005', name: 'Grava Caliza de 3/4"', unit: 'm³', costPrice: 420.0, salePrice: 490.0, minStock: 20, maxStock: 500 },
+    { sku: 'MAT-006', name: 'Mortero Seco de Alta Adherencia 50 kg', unit: 'Saco', costPrice: 165.0, salePrice: 195.0, minStock: 30, maxStock: 1000 },
+    { sku: 'MAT-007', name: 'Malla Electrosoldada 6x6-10/10 (2.5x40m)', unit: 'Rollo', costPrice: 1450.0, salePrice: 1750.0, minStock: 5, maxStock: 100 },
+    { sku: 'MAT-008', name: 'Tabique Rojo Recocido 7x12x24 cm', unit: 'Millar', costPrice: 3200.0, salePrice: 3800.0, minStock: 2, maxStock: 50 },
+    { sku: 'MAT-009', name: 'Block de Concreto Hueco 15x20x40 cm', unit: 'Pieza', costPrice: 16.5, salePrice: 20.0, minStock: 500, maxStock: 10000 },
+    { sku: 'MAT-010', name: "Concreto Premezclado f'c=250 kg/cm³", unit: 'm³', costPrice: 1850.0, salePrice: 2200.0, minStock: 10, maxStock: 200 },
+    { sku: 'MAT-011', name: 'Pintura Vinílica Industrial Blanca 19L', unit: 'Cubeta', costPrice: 890.0, salePrice: 1100.0, minStock: 10, maxStock: 200 },
+    { sku: 'MAT-012', name: 'Yeso de Construcción Blanco 40 kg', unit: 'Saco', costPrice: 95.0, salePrice: 120.0, minStock: 20, maxStock: 500 },
+    { sku: 'MAT-013', name: 'Tubo PVC Hidráulico 2" x 6m', unit: 'Pieza', costPrice: 210.0, salePrice: 260.0, minStock: 15, maxStock: 300 },
+    { sku: 'MAT-014', name: 'Alambre Recocido Calibre 16', unit: 'kg', costPrice: 38.0, salePrice: 48.0, minStock: 50, maxStock: 1000 },
+    { sku: 'MAT-015', name: 'Clavo de Olor 2 1/2" con Cabeza', unit: 'kg', costPrice: 42.0, salePrice: 52.0, minStock: 30, maxStock: 500 }
+  ];
+
+  for (const item of realMaterials) {
+    if (!(await Product.findOne({ companyId: company._id, sku: item.sku }))) {
+      await Product.create({
+        companyId: company._id,
+        sku: item.sku,
+        name: item.name,
+        unit: item.unit,
+        costPrice: item.costPrice,
+        salePrice: item.salePrice,
+        taxRate: 16,
+        minStock: item.minStock,
+        maxStock: item.maxStock,
+        status: 'active',
+      });
+    }
   }
-  if (!(await Product.findOne({ companyId: company._id, sku: 'DEMO-002' }))) {
-    await Product.create({
-      companyId: company._id,
-      sku: 'DEMO-002',
-      name: 'Producto Terminado Demo',
-      unit: 'pza',
-      costPrice: 25,
-      salePrice: 40,
-      taxRate: 16,
-      minStock: 2,
-      status: 'active',
-    });
-    console.log('[seed] Producto demo DEMO-002 creado.');
-  }
+  console.log(`[seed] Catálogo de ${realMaterials.length} materiales de construcción verificado.`);
   if (!(await Supplier.findOne({ companyId: company._id, code: 'DEMO-PROV' }))) {
     await Supplier.create({
       companyId: company._id,
@@ -311,36 +318,32 @@ async function ensureDemoTenant(password) {
     console.log(`[seed] Administrador demo (${DEMO_ADMIN_EMAIL}): desbloqueado, contraseña sincronizada y activo.`);
   }
 
-  // --- Obras Semilla ERP Constructor ---
-  let p1 = await Project.findOne({ companyId: company._id, code: 'OBRA-001' });
-  if (!p1) {
-    p1 = await Project.create({
-      companyId: company._id,
-      code: 'OBRA-001',
-      name: 'Edificio Centro - Torre A',
-      description: 'Construcción de torre residencial de 12 niveles',
-      location: 'Av. Paseo de la Reforma 120, CDMX',
-      budget: 1850000.0,
-      executedAmount: 920000.0,
-      status: 'EN_PROCESO',
-      managerName: 'Ing. Carlos Mendoza',
-      startDate: new Date('2026-01-15'),
-      estimatedEndDate: new Date('2026-12-20'),
-    });
-    console.log(`[seed] Obra demo creada: ${p1.code} - ${p1.name}`);
-  }
+  // --- Obras Reales ERP Constructor ---
+  const realProjects = [
+    { code: 'OBRA-001', name: 'Torre Residencial Coyoacán', location: 'Av. Universidad 1420, Coyoacán, CDMX', budget: 12500000.0, executedAmount: 6200000.0, managerName: 'Ing. Carlos Mendoza', status: 'EN_PROCESO' },
+    { code: 'OBRA-002', name: 'Pavimentación y Drenaje Av. Reforma', location: 'Av. Juárez y Paseo de la Reforma, CDMX', budget: 8400000.0, executedAmount: 2100000.0, managerName: 'Ing. Sofia Ramírez', status: 'EN_PROCESO' },
+    { code: 'OBRA-003', name: 'Complejo Industrial Toluca', location: 'Parque Industrial Toluca 2000, MEX', budget: 24000000.0, executedAmount: 11500000.0, managerName: 'Ing. Roberto Gómez', status: 'EN_PROCESO' },
+    { code: 'OBRA-004', name: 'Hospital General Sur', location: 'Calzada de Tlalpan 4800, CDMX', budget: 18200000.0, executedAmount: 4300000.0, managerName: 'Ing. Fernando Castro', status: 'EN_PROCESO' },
+    { code: 'OBRA-005', name: 'Centro Comercial Perisur', location: 'Anillo Periférico Sur 4690, CDMX', budget: 32000000.0, executedAmount: 8900000.0, managerName: 'Ing. Andrea Morales', status: 'EN_PROCESO' }
+  ];
 
-  let p2 = await Project.findOne({ companyId: company._id, code: 'OBRA-002' });
-  if (!p2) {
-    p2 = await Project.create({
-      companyId: company._id,
-      code: 'OBRA-002',
-      name: 'Residencial Los Pinos',
-      description: 'Desarrollo horizontal de 24 viviendas',
-      location: 'Calle Los Pinos 45, Guadalajara, JAL',
-      budget: 2400000.0,
-      executedAmount: 480000.0,
-      status: 'EN_PROCESO',
+  for (const item of realProjects) {
+    if (!(await Project.findOne({ companyId: company._id, code: item.code }))) {
+      await Project.create({
+        companyId: company._id,
+        code: item.code,
+        name: item.name,
+        location: item.location,
+        budget: item.budget,
+        executedAmount: item.executedAmount,
+        status: item.status,
+        managerName: item.managerName,
+        startDate: new Date('2026-01-15'),
+        estimatedEndDate: new Date('2026-12-20'),
+      });
+    }
+  }
+  console.log(`[seed] ${realProjects.length} obras reales de construcción creadas.`);
       managerName: 'Ing. Sofia Ramírez',
       startDate: new Date('2026-03-01'),
       estimatedEndDate: new Date('2027-02-28'),

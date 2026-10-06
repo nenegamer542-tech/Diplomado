@@ -39,4 +39,26 @@ class StockViewModel : ViewModel() {
             }
         }
     }
+
+    fun createAdjustment(productId: String, warehouseId: String, newQuantity: Double, reason: String, onComplete: (Boolean, String?) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val body = mapOf(
+                    "productId" to productId,
+                    "warehouseId" to warehouseId,
+                    "quantity" to newQuantity,
+                    "reason" to reason.ifEmpty { "Ajuste físico de inventario de obra" }
+                )
+                val res = RetrofitClient.api.createAdjustment(body)
+                if (res.isSuccessful) {
+                    loadStock()
+                    onComplete(true, null)
+                } else {
+                    onComplete(false, res.body()?.error?.message ?: "Error al ajustar el stock.")
+                }
+            } catch (e: Exception) {
+                onComplete(false, e.message ?: "Error de conexión.")
+            }
+        }
+    }
 }

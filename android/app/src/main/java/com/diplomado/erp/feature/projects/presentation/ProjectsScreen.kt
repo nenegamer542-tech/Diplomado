@@ -2,8 +2,6 @@ package com.diplomado.erp.feature.projects.presentation
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -19,8 +17,20 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diplomado.erp.core.common.rbac.PermissionChecker
 import com.diplomado.erp.core.network.dto.ProjectDto
-import com.diplomado.erp.ui.components.*
-import com.diplomado.erp.ui.theme.*
+import com.diplomado.erp.ui.components.TTBadge
+import com.diplomado.erp.ui.components.TTButton
+import com.diplomado.erp.ui.components.TTButtonVariant
+import com.diplomado.erp.ui.components.TTCard
+import com.diplomado.erp.ui.components.TTDataTable
+import com.diplomado.erp.ui.components.TTEmptyState
+import com.diplomado.erp.ui.components.TTLoading
+import com.diplomado.erp.ui.components.TTTextField
+import com.diplomado.erp.ui.theme.TecodeAccent
+import com.diplomado.erp.ui.theme.TecodeBorder
+import com.diplomado.erp.ui.theme.TecodeError
+import com.diplomado.erp.ui.theme.TecodeTextMuted
+import com.diplomado.erp.ui.theme.TecodeTextPrimary
+import com.diplomado.erp.ui.theme.TecodeTextSecondary
 
 @Composable
 fun ProjectsScreen(
@@ -31,6 +41,7 @@ fun ProjectsScreen(
     val uiState by viewModel.uiState.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
     var showCreateDialog by remember { mutableStateOf(false) }
+    var projectToDelete by remember { mutableStateOf<ProjectDto?>(null) }
 
     var code by remember { mutableStateOf("") }
     var name by remember { mutableStateOf("") }
@@ -77,7 +88,59 @@ fun ProjectsScreen(
                     createLabel = "Nueva obra",
                     emptyText = "Sin obras registradas."
                 ) { project ->
-                    ProjectCard(project = project, onClick = { onProjectClick(project.id) })
+                    ProjectCard(
+                        project = project,
+                        onClick = { onProjectClick(project.id) },
+                        onDeleteClick = if (PermissionChecker.hasPermission("projects.update")) {
+                            { projectToDelete = project }
+                        } else null
+                    )
+                }
+
+                // DIALOGO MODAL CONFIRMAR ELIMINACION / CANCELACION DE OBRA
+                if (projectToDelete != null) {
+                    androidx.compose.ui.window.Dialog(onDismissRequest = { if (!isSubmitting) projectToDelete = null }) {
+                        TTCard(modifier = Modifier.fillMaxWidth()) {
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Text(
+                                    text = "Confirmar Cancelación / Eliminación",
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TecodeError
+                                )
+                                Text(
+                                    text = "¿Está seguro de cancelar la obra ${projectToDelete?.name}?",
+                                    fontSize = 13.sp,
+                                    color = TecodeTextPrimary
+                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    TTButton(
+                                        text = "Cancelar",
+                                        onClick = { projectToDelete = null },
+                                        variant = TTButtonVariant.Ghost,
+                                        modifier = Modifier.weight(1f),
+                                        enabled = !isSubmitting
+                                    )
+                                    TTButton(
+                                        text = "Eliminar / Cancelar Obra",
+                                        onClick = {
+                                            isSubmitting = true
+                                            viewModel.deleteProject(projectToDelete!!.id) { _, _ ->
+                                                isSubmitting = false
+                                                projectToDelete = null
+                                            }
+                                        },
+                                        variant = TTButtonVariant.Danger,
+                                        loading = isSubmitting,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
 
                 // DIALOGO CREAR NUEVA OBRA DE CONSTRUCCION
@@ -185,7 +248,8 @@ fun ProjectsScreen(
 @Composable
 fun ProjectCard(
     project: ProjectDto,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onDeleteClick: (() -> Unit)? = null
 ) {
     val progress = if (project.budget > 0) (project.executedAmount / project.budget).coerceIn(0.0, 1.0).toFloat() else 0f
     val percentage = (progress * 100).toInt()
@@ -262,6 +326,16 @@ fun ProjectCard(
                     text = "👷 Responsable: ${project.managerName}",
                     fontSize = 11.sp,
                     color = TecodeTextMuted
+                )
+            }
+
+            if (onDeleteClick != null) {
+                Spacer(modifier = Modifier.height(6.dp))
+                TTButton(
+                    text = "Eliminar / Cancelar Obra",
+                    onClick = onDeleteClick,
+                    variant = TTButtonVariant.Danger,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }

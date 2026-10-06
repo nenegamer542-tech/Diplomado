@@ -85,4 +85,20 @@ class ProductsViewModel : ViewModel() {
             }
         }
     }
+
+    fun deleteProduct(id: String, onComplete: (Boolean, String?) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val res = RetrofitClient.api.deleteProduct(id)
+                if (res.isSuccessful) {
+                    loadProducts()
+                    onComplete(true, null)
+                } else {
+                    onComplete(false, res.body()?.error?.message ?: "Error al eliminar material.")
+                }
+            } catch (e: Exception) {
+                onComplete(false, e.message ?: "Error de conexión.")
+            }
+        }
+    }
 }
