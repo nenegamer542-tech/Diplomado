@@ -5,20 +5,25 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.diplomado.erp.core.common.rbac.PermissionChecker
-import com.diplomado.erp.ui.components.*
-import com.diplomado.erp.ui.theme.*
+import com.diplomado.erp.ui.components.TTCard
+import com.diplomado.erp.ui.theme.TecodeAccent
+import com.diplomado.erp.ui.theme.TecodeTextMuted
+import com.diplomado.erp.ui.theme.TecodeTextPrimary
 
 data class ModuleMenuItem(
     val title: String,
@@ -37,7 +42,7 @@ fun MoreScreen(
         ModuleMenuItem("Mis Obras", "Centros de costo y presupuestos", "projects", Icons.Default.Apartment, "projects.read"),
         ModuleMenuItem("Materiales", "Insumos, unidades y precios", "products", Icons.Default.Category, "products.read"),
         ModuleMenuItem("Existencias", "Bodegas y stock bajo", "stock", Icons.Default.BarChart, "inventory.read"),
-        ModuleMenuItem("Kardex Insumos", "Movimientos de inventario", "movements", Icons.Default.ReceiptLong, "inventory.read"),
+        ModuleMenuItem("Kardex Insumos", "Movimientos de inventario", "movements", Icons.AutoMirrored.Filled.ReceiptLong, "inventory.read"),
         ModuleMenuItem("Compras", "Órdenes de compra a proveedores", "purchases", Icons.Default.ShoppingCart, "purchases.read"),
         ModuleMenuItem("Estimaciones", "Contratos e ingresos de obra", "sales", Icons.Default.LocalOffer, "sales.orders.read"),
         ModuleMenuItem("Finanzas", "Cajas chicas y cuentas bancarias", "finance", Icons.Default.AccountBalance, "finance.accounts.read"),
@@ -88,7 +93,7 @@ fun MoreScreen(
                         Box(
                             modifier = Modifier
                                 .size(40.dp)
-                                .clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp)),
+                                .clip(RoundedCornerShape(8.dp)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(

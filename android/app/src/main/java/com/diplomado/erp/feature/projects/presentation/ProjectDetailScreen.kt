@@ -151,7 +151,7 @@ fun ProjectDetailScreen(
                         TTCard(title = "Avance de Ejecución Financiera") {
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 LinearProgressIndicator(
-                                    progress = progress,
+                                    progress = { progress },
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .height(10.dp)
