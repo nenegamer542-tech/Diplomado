@@ -10,7 +10,6 @@ node_modules/
 atlas-credentials.env
 
 # Build
-dist/
 build/
 web-build/
 .expo/
