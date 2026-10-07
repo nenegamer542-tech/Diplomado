@@ -183,40 +183,88 @@ const reportService = {
     return { year, month: month || null, items, totals: { planned, executed, variance: round2(planned - executed) } };
   },
 
-  /** Exporta ingresos, gastos, compras y estimaciones del periodo como CSV (RFC 4180, con BOM UTF-8). */
+  /** Exporta reporte ejecutivo de movimientos para Excel con membrete de marca, moneda formateada y totales. */
   async financeExportCsv(companyId, range) {
     const [{ incomes, expenses, purchases, sales }, accounts] = await Promise.all([
       reportsRepository.financeMovementsForExport(companyId, range),
       reportsRepository.accountsList(companyId),
     ]);
-    const accountCode = new Map(accounts.map((a) => [String(a._id), a.code]));
+    const accountNames = new Map(accounts.map((a) => [String(a._id), `${a.code} - ${a.name}`]));
 
-    const header = ['TIPO', 'CODIGO', 'FECHA', 'CATEGORIA_O_DETALLE', 'METODO_O_ESTADO', 'CUENTA', 'IMPORTE', 'ESTADO', 'DESCRIPCION'];
+    const fmtMoney = (n) => `$${Number(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+    const titleBanner = [
+      ['=========================================================================================='],
+      ['                       EMPRESA CONSTRUCTORA TEC[ODE S.A. DE C.V.'],
+      ['                   REPORTE OFICIAL DE MOVIMIENTOS Y OPERACIONES DE OBRA'],
+      [`                             FECHA DE EMISIÓN: ${new Date().toLocaleDateString('es-MX')}`],
+      ['=========================================================================================='],
+      [],
+    ];
+
+    const header = [
+      'TIPO OPERACIÓN',
+      'CÓDIGO / FOLIO',
+      'FECHA',
+      'CATEGORÍA / CONCEPTO',
+      'MÉTODO / ESTADO',
+      'CUENTA O FONDO',
+      'IMPORTE ($ MXN)',
+      'ESTADO',
+      'DESCRIPCIÓN / JUSTIFICACIÓN'
+    ];
+
     const toRow = (type, m) => {
       const dateVal = m.date || m.createdAt || new Date();
+      const formattedDate = dateVal instanceof Date
+        ? dateVal.toISOString().slice(0, 10)
+        : new Date(dateVal).toISOString().slice(0, 10);
+      const amt = m.amount || m.total || 0;
+
       return [
         type,
         m.code || '—',
-        dateVal instanceof Date ? dateVal.toISOString().slice(0, 10) : new Date(dateVal).toISOString().slice(0, 10),
-        m.category || 'OBRA_GENERAL',
-        m.method || m.status || 'POSTED',
-        accountCode.get(String(m.accountId)) || 'TESORERIA',
-        m.amount || m.total || 0,
-        m.status || 'POSTED',
+        formattedDate,
+        m.category || 'OPERATIVO',
+        (m.method || m.status || 'POSTED').toUpperCase(),
+        accountNames.get(String(m.accountId)) || 'TESORERÍA GENERAL',
+        fmtMoney(amt),
+        (m.status || 'POSTED').toUpperCase(),
         m.description || m.notes || 'Registro operativo de obra',
       ];
     };
 
-    const rows = [
-      header,
+    const dataRows = [
       ...incomes.map((m) => toRow('INGRESO', m)),
       ...expenses.map((m) => toRow('GASTO', m)),
       ...purchases.map((m) => toRow('COMPRA_OBRA', m)),
       ...sales.map((m) => toRow('ESTIMACION_OBRA', m)),
     ];
-    const csv = rows.map((row) => row.map(csvCell).join(',')).join('\r\n');
-    const filename = `movimientos-financieros-${new Date().toISOString().slice(0, 10)}.csv`;
-    return { filename, csv: `\uFEFF${csv}` }; // BOM para Excel (UTF-8)
+
+    const totalIncome = incomes.reduce((s, m) => s + (m.amount || 0), 0);
+    const totalExpense = expenses.reduce((s, m) => s + (m.amount || 0), 0);
+    const netBalance = totalIncome - totalExpense;
+
+    const summaryBanner = [
+      [],
+      ['------------------------------------------------------------------------------------------'],
+      ['RESUMEN FINANCIERO EJECUTIVO:'],
+      ['TOTAL INGRESOS COBRADOS:', fmtMoney(totalIncome)],
+      ['TOTAL GASTOS APLICADOS:', fmtMoney(totalExpense)],
+      ['SALDO NETO DISPONIBLE:', fmtMoney(netBalance)],
+      ['=========================================================================================='],
+    ];
+
+    const allRows = [
+      ...titleBanner,
+      header,
+      ...dataRows,
+      ...summaryBanner
+    ];
+
+    const csv = allRows.map((row) => row.map(csvCell).join(',')).join('\r\n');
+    const filename = `reporte-ejecutivo-tec-ode-${new Date().toISOString().slice(0, 10)}.csv`;
+    return { filename, csv: `\uFEFF${csv}` };
   },
 };
 
