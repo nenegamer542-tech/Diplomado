@@ -183,13 +183,15 @@ const reportService = {
     return { year, month: month || null, items, totals: { planned, executed, variance: round2(planned - executed) } };
   },
 
-  /** Exporta reporte limpio y elegante perfectamente alineado para Microsoft Excel. */
+  /** Exporta tabla directa limpia 100% alineada para Excel con la empresa en la primera columna. */
   async financeExportCsv(companyId, range) {
     const [{ incomes, expenses, purchases, sales }, accounts] = await Promise.all([
       reportsRepository.financeMovementsForExport(companyId, range),
       reportsRepository.accountsList(companyId),
     ]);
     const accountNames = new Map(accounts.map((a) => [String(a._id), `${a.code} ${a.name}`]));
+
+    const companyName = 'Empresa Constructora Tec[ode S.A. de C.V.';
 
     const cleanText = (str) =>
       (str === null || str === undefined ? '' : String(str))
@@ -198,14 +200,8 @@ const reportService = {
         .replace(/[",;\r\n]/g, ' ')
         .trim();
 
-    const titleBanner = [
-      ['EMPRESA CONSTRUCTORA TEC[ODE S.A. DE C.V.'],
-      ['REPORTE OFICIAL DE MOVIMIENTOS Y OPERACIONES DE OBRA'],
-      [`FECHA EMISION: ${new Date().toISOString().slice(0, 10)}`],
-      [],
-    ];
-
     const header = [
+      'EMPRESA',
       'TIPO OPERACION',
       'CODIGO',
       'FECHA',
@@ -225,6 +221,7 @@ const reportService = {
       const amt = Number(m.amount || m.total || 0).toFixed(2);
 
       return [
+        companyName,
         type,
         m.code || '—',
         formattedDate,
@@ -244,27 +241,13 @@ const reportService = {
       ...sales.map((m) => toRow('ESTIMACION_OBRA', m)),
     ];
 
-    const totalIncome = incomes.reduce((s, m) => s + (m.amount || 0), 0);
-    const totalExpense = expenses.reduce((s, m) => s + (m.amount || 0), 0);
-    const netBalance = totalIncome - totalExpense;
-
-    const summaryBanner = [
-      [],
-      ['RESUMEN FINANCIERO:'],
-      ['TOTAL INGRESOS', totalIncome.toFixed(2)],
-      ['TOTAL GASTOS', totalExpense.toFixed(2)],
-      ['SALDO NETO', netBalance.toFixed(2)],
-    ];
-
     const allRows = [
-      ...titleBanner,
       header,
-      ...dataRows,
-      ...summaryBanner
+      ...dataRows
     ];
 
     const csv = allRows.map((row) => row.map((val) => `"${cleanText(val)}"`).join(',')).join('\r\n');
-    const filename = `reporte-ejecutivo-tec-ode-${new Date().toISOString().slice(0, 10)}.csv`;
+    const filename = `reporte-operaciones-tec-ode-${new Date().toISOString().slice(0, 10)}.csv`;
     return { filename, csv: `\uFEFF${csv}` };
   },
 };
