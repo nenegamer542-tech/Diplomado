@@ -47,8 +47,9 @@ const budgets = asyncHandler(async (req, res) => {
 
 const exportCsv = asyncHandler(async (req, res) => {
   const { filename, csv } = await reportService.financeExportCsv(req.user.companyId, range(req));
-  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  const xlsFilename = filename.endsWith('.xls') ? filename : filename.replace(/\.csv$/, '.xls');
+  res.setHeader('Content-Type', 'application/vnd.ms-excel; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${xlsFilename}"`);
   return res.send(csv);
 });
 

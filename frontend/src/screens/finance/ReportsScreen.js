@@ -124,26 +124,26 @@ export default function ReportsScreen() {
   const enabled = tab === 'budgets' ? yearOk : rangeOk(from) && rangeOk(to);
   const report = useReport(`/reports/${tab}`, query, enabled);
 
-  const exportCsv = async () => {
+  const exportExcel = async () => {
     setExportError('');
     try {
       const parts = [];
       if (rangeOk(from) && from) parts.push(`from=${from}`);
       if (rangeOk(to) && to) parts.push(`to=${to}`);
       const qs = parts.length ? `?${parts.join('&')}` : '';
-      const csv = await apiText(`/reports/finance/export${qs}`);
+      const content = await apiText(`/reports/finance/export${qs}`);
       if (Platform.OS === 'web') {
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+        const blob = new Blob([content], { type: 'application/vnd.ms-excel;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `movimientos-financieros-${new Date().toISOString().slice(0, 10)}.csv`;
+        a.download = `reporte-ejecutivo-tec-ode-${new Date().toISOString().slice(0, 10)}.xls`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
       } else {
-        Alert.alert('Exportación', 'La descarga CSV está disponible en la versión web.');
+        Alert.alert('Exportación', 'La descarga Excel está disponible en la versión web.');
       }
     } catch (e) {
       setExportError(e.message);
@@ -368,8 +368,8 @@ export default function ReportsScreen() {
           🖨️ Imprimir / PDF
         </TTButton>
         {can('reports.export') ? (
-          <TTButton variant="primary" size="md" onPress={exportCsv}>
-            Exportar CSV
+          <TTButton variant="primary" size="md" onPress={exportExcel}>
+            📊 Exportar Excel
           </TTButton>
         ) : null}
       </View>
