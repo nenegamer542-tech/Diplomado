@@ -183,72 +183,152 @@ const reportService = {
     return { year, month: month || null, items, totals: { planned, executed, variance: round2(planned - executed) } };
   },
 
-  /** Exporta tabla directa limpia 100% alineada para Excel con la empresa en la primera columna. */
+  /** Exporta hoja de cálculo Excel (.xls) con diseño profesional, tarjeta de KPIs, encabezado azul marino y resaltado en rojo para alertas. */
   async financeExportCsv(companyId, range) {
     const [{ incomes, expenses, purchases, sales }, accounts] = await Promise.all([
       reportsRepository.financeMovementsForExport(companyId, range),
       reportsRepository.accountsList(companyId),
     ]);
-    const accountNames = new Map(accounts.map((a) => [String(a._id), `${a.code} ${a.name}`]));
+    const accountNames = new Map(accounts.map((a) => [String(a._id), `${a.code} - ${a.name}`]));
 
-    const companyName = 'Empresa Constructora Tec[ode S.A. de C.V.';
+    const totalIncome = incomes.reduce((s, m) => s + (m.amount || 0), 0);
+    const totalExpense = expenses.reduce((s, m) => s + (m.amount || 0), 0);
+    const netBalance = totalIncome - totalExpense;
+    const totalOperations = incomes.length + expenses.length + purchases.length + sales.length;
 
-    const cleanText = (str) =>
-      (str === null || str === undefined ? '' : String(str))
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[",;\r\n]/g, ' ')
-        .trim();
+    const fmtMoney = (n) => `$${Number(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-    const header = [
-      'EMPRESA',
-      'TIPO OPERACION',
-      'CODIGO',
-      'FECHA',
-      'CATEGORIA',
-      'METODO',
-      'CUENTA O FONDO',
-      'IMPORTE_MXN',
-      'ESTADO',
-      'DESCRIPCION'
-    ];
+    const excelHtml = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+        <!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Reporte ERP</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->
+        <style>
+          body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f8fafc; }
+          .banner { background-color: #0f172a; color: #ffffff; text-align: center; font-size: 20px; font-weight: bold; padding: 14px; }
+          .subbanner { background-color: #1e293b; color: #38bdf8; text-align: center; font-size: 13px; font-weight: bold; padding: 6px; }
+          .kpi-table { margin-top: 12px; margin-bottom: 16px; border-collapse: collapse; }
+          .kpi-label { background-color: #1e293b; color: #ffffff; font-weight: bold; padding: 8px 14px; border: 1px solid #334155; font-size: 12px; }
+          .kpi-value { background-color: #ffffff; color: #0f172a; font-weight: bold; padding: 8px 14px; border: 1px solid #cbd5e1; font-size: 14px; text-align: right; }
+          .data-table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+          .th { background-color: #0f172a; color: #ffffff; font-weight: bold; font-size: 12px; padding: 10px; border: 1px solid #334155; text-align: left; }
+          .td { padding: 8px 10px; border: 1px solid #e2e8f0; font-size: 12px; color: #1e293b; }
+          .td-num { padding: 8px 10px; border: 1px solid #e2e8f0; font-size: 12px; font-weight: bold; color: #0f172a; text-align: right; }
+          .tr-ingreso { background-color: #f0fdf4; }
+          .tr-gasto { background-color: #fef2f2; color: #991b1b; }
+          .tr-compra { background-color: #f0f9ff; }
+          .tr-estimacion { background-color: #fefce8; }
+          .badge-ingreso { background-color: #166534; color: #ffffff; padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 11px; }
+          .badge-gasto { background-color: #991b1b; color: #ffffff; padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 11px; }
+        </style>
+      </head>
+      <body>
+        <table>
+          <tr>
+            <td colspan="9" class="banner">EMPRESA CONSTRUCTORA TEC[ODE S.A. DE C.V.</td>
+          </tr>
+          <tr>
+            <td colspan="9" class="subbanner">REPORTE OFICIAL DE MOVIMIENTOS Y OPERACIONES DE OBRA · EMISION: ${new Date().toLocaleDateString('es-MX')}</td>
+          </tr>
+        </table>
 
-    const toRow = (type, m) => {
-      const dateVal = m.date || m.createdAt || new Date();
-      const formattedDate = dateVal instanceof Date
-        ? dateVal.toISOString().slice(0, 10)
-        : new Date(dateVal).toISOString().slice(0, 10);
-      const amt = Number(m.amount || m.total || 0).toFixed(2);
+        <table class="kpi-table">
+          <tr>
+            <td class="kpi-label">TOTAL OPERACIONES</td>
+            <td class="kpi-value">${totalOperations}</td>
+          </tr>
+          <tr>
+            <td class="kpi-label">TOTAL INGRESOS</td>
+            <td class="kpi-value" style="color:#16a34a">${fmtMoney(totalIncome)}</td>
+          </tr>
+          <tr>
+            <td class="kpi-label">TOTAL GASTOS</td>
+            <td class="kpi-value" style="color:#dc2626">${fmtMoney(totalExpense)}</td>
+          </tr>
+          <tr>
+            <td class="kpi-label">SALDO NETO DISPONIBLE</td>
+            <td class="kpi-value" style="color:#0284c7">${fmtMoney(netBalance)}</td>
+          </tr>
+        </table>
 
-      return [
-        companyName,
-        type,
-        m.code || '—',
-        formattedDate,
-        cleanText(m.category || 'OPERATIVO'),
-        cleanText(m.method || m.status || 'POSTED').toUpperCase(),
-        cleanText(accountNames.get(String(m.accountId)) || 'TESORERIA GENERAL'),
-        amt,
-        cleanText(m.status || 'POSTED').toUpperCase(),
-        cleanText(m.description || m.notes || 'Registro operativo de obra'),
-      ];
-    };
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th class="th">TIPO OPERACION</th>
+              <th class="th">CODIGO / FOLIO</th>
+              <th class="th">FECHA</th>
+              <th class="th">CATEGORIA / CONCEPTO</th>
+              <th class="th">METODO / ESTADO</th>
+              <th class="th">CUENTA O FONDO</th>
+              <th class="th" style="text-align:right">IMPORTE ($ MXN)</th>
+              <th class="th">ESTADO</th>
+              <th class="th">DESCRIPCION / JUSTIFICACION</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${incomes.map(m => `
+              <tr class="tr-ingreso">
+                <td class="td"><span class="badge-ingreso">INGRESO</span></td>
+                <td class="td"><b>${m.code || '—'}</b></td>
+                <td class="td">${m.date ? new Date(m.date).toISOString().slice(0, 10) : '—'}</td>
+                <td class="td">${m.category || 'ESTIMACIONES'}</td>
+                <td class="td">${(m.method || 'TRANSFERENCIA').toUpperCase()}</td>
+                <td class="td">${accountNames.get(String(m.accountId)) || 'TESORERIA'}</td>
+                <td class="td-num" style="color:#16a34a">${fmtMoney(m.amount)}</td>
+                <td class="td"><b>${m.status}</b></td>
+                <td class="td">${m.description || 'Ingreso registrado en obra'}</td>
+              </tr>
+            `).join('')}
 
-    const dataRows = [
-      ...incomes.map((m) => toRow('INGRESO', m)),
-      ...expenses.map((m) => toRow('GASTO', m)),
-      ...purchases.map((m) => toRow('COMPRA_OBRA', m)),
-      ...sales.map((m) => toRow('ESTIMACION_OBRA', m)),
-    ];
+            ${expenses.map(m => `
+              <tr class="tr-gasto">
+                <td class="td"><span class="badge-gasto">GASTO</span></td>
+                <td class="td"><b>${m.code || '—'}</b></td>
+                <td class="td">${m.date ? new Date(m.date).toISOString().slice(0, 10) : '—'}</td>
+                <td class="td">${m.category || 'MATERIALES'}</td>
+                <td class="td">${(m.method || 'EFECTIVO').toUpperCase()}</td>
+                <td class="td">${accountNames.get(String(m.accountId)) || 'CAJA CHICA'}</td>
+                <td class="td-num" style="color:#dc2626">${fmtMoney(m.amount)}</td>
+                <td class="td"><b>${m.status}</b></td>
+                <td class="td">${m.description || 'Gasto operativo de obra'}</td>
+              </tr>
+            `).join('')}
 
-    const allRows = [
-      header,
-      ...dataRows
-    ];
+            ${purchases.map(m => `
+              <tr class="tr-compra">
+                <td class="td">COMPRA OBRA</td>
+                <td class="td"><b>${m.code || '—'}</b></td>
+                <td class="td">${m.createdAt ? new Date(m.createdAt).toISOString().slice(0, 10) : '—'}</td>
+                <td class="td">INSUMOS / MATERIALES</td>
+                <td class="td">${m.status}</td>
+                <td class="td">BODEGA GENERAL</td>
+                <td class="td-num">${fmtMoney(m.total)}</td>
+                <td class="td"><b>${m.status}</b></td>
+                <td class="td">${m.notes || 'Orden de compra para obra'}</td>
+              </tr>
+            `).join('')}
 
-    const csv = allRows.map((row) => row.map((val) => `"${cleanText(val)}"`).join(',')).join('\r\n');
-    const filename = `reporte-operaciones-tec-ode-${new Date().toISOString().slice(0, 10)}.csv`;
-    return { filename, csv: `\uFEFF${csv}` };
+            ${sales.map(m => `
+              <tr class="tr-estimacion">
+                <td class="td">ESTIMACION OBRA</td>
+                <td class="td"><b>${m.code || '—'}</b></td>
+                <td class="td">${m.createdAt ? new Date(m.createdAt).toISOString().slice(0, 10) : '—'}</td>
+                <td class="td">AVANCE DE OBRA</td>
+                <td class="td">${m.status}</td>
+                <td class="td">TESORERIA GENERAL</td>
+                <td class="td-num">${fmtMoney(m.total)}</td>
+                <td class="td"><b>${m.status}</b></td>
+                <td class="td">${m.notes || 'Estimacion contractual de obra'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </body>
+      </html>
+    `;
+
+    const filename = `reporte-ejecutivo-tec-ode-${new Date().toISOString().slice(0, 10)}.xls`;
+    return { filename, csv: `\uFEFF${excelHtml}` };
   },
 };
 
