@@ -183,35 +183,38 @@ const reportService = {
     return { year, month: month || null, items, totals: { planned, executed, variance: round2(planned - executed) } };
   },
 
-  /** Exporta reporte ejecutivo de movimientos para Excel con membrete de marca, moneda formateada y totales. */
+  /** Exporta reporte limpio y elegante perfectamente alineado para Microsoft Excel. */
   async financeExportCsv(companyId, range) {
     const [{ incomes, expenses, purchases, sales }, accounts] = await Promise.all([
       reportsRepository.financeMovementsForExport(companyId, range),
       reportsRepository.accountsList(companyId),
     ]);
-    const accountNames = new Map(accounts.map((a) => [String(a._id), `${a.code} - ${a.name}`]));
+    const accountNames = new Map(accounts.map((a) => [String(a._id), `${a.code} ${a.name}`]));
 
-    const fmtMoney = (n) => `$${Number(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const cleanText = (str) =>
+      (str === null || str === undefined ? '' : String(str))
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[",;\r\n]/g, ' ')
+        .trim();
 
     const titleBanner = [
-      ['=========================================================================================='],
-      ['                       EMPRESA CONSTRUCTORA TEC[ODE S.A. DE C.V.'],
-      ['                   REPORTE OFICIAL DE MOVIMIENTOS Y OPERACIONES DE OBRA'],
-      [`                             FECHA DE EMISIÓN: ${new Date().toLocaleDateString('es-MX')}`],
-      ['=========================================================================================='],
+      ['EMPRESA CONSTRUCTORA TEC[ODE S.A. DE C.V.'],
+      ['REPORTE OFICIAL DE MOVIMIENTOS Y OPERACIONES DE OBRA'],
+      [`FECHA EMISION: ${new Date().toISOString().slice(0, 10)}`],
       [],
     ];
 
     const header = [
-      'TIPO OPERACIÓN',
-      'CÓDIGO / FOLIO',
+      'TIPO OPERACION',
+      'CODIGO',
       'FECHA',
-      'CATEGORÍA / CONCEPTO',
-      'MÉTODO / ESTADO',
+      'CATEGORIA',
+      'METODO',
       'CUENTA O FONDO',
-      'IMPORTE ($ MXN)',
+      'IMPORTE_MXN',
       'ESTADO',
-      'DESCRIPCIÓN / JUSTIFICACIÓN'
+      'DESCRIPCION'
     ];
 
     const toRow = (type, m) => {
@@ -219,18 +222,18 @@ const reportService = {
       const formattedDate = dateVal instanceof Date
         ? dateVal.toISOString().slice(0, 10)
         : new Date(dateVal).toISOString().slice(0, 10);
-      const amt = m.amount || m.total || 0;
+      const amt = Number(m.amount || m.total || 0).toFixed(2);
 
       return [
         type,
         m.code || '—',
         formattedDate,
-        m.category || 'OPERATIVO',
-        (m.method || m.status || 'POSTED').toUpperCase(),
-        accountNames.get(String(m.accountId)) || 'TESORERÍA GENERAL',
-        fmtMoney(amt),
-        (m.status || 'POSTED').toUpperCase(),
-        m.description || m.notes || 'Registro operativo de obra',
+        cleanText(m.category || 'OPERATIVO'),
+        cleanText(m.method || m.status || 'POSTED').toUpperCase(),
+        cleanText(accountNames.get(String(m.accountId)) || 'TESORERIA GENERAL'),
+        amt,
+        cleanText(m.status || 'POSTED').toUpperCase(),
+        cleanText(m.description || m.notes || 'Registro operativo de obra'),
       ];
     };
 
@@ -247,12 +250,10 @@ const reportService = {
 
     const summaryBanner = [
       [],
-      ['------------------------------------------------------------------------------------------'],
-      ['RESUMEN FINANCIERO EJECUTIVO:'],
-      ['TOTAL INGRESOS COBRADOS:', fmtMoney(totalIncome)],
-      ['TOTAL GASTOS APLICADOS:', fmtMoney(totalExpense)],
-      ['SALDO NETO DISPONIBLE:', fmtMoney(netBalance)],
-      ['=========================================================================================='],
+      ['RESUMEN FINANCIERO:'],
+      ['TOTAL INGRESOS', totalIncome.toFixed(2)],
+      ['TOTAL GASTOS', totalExpense.toFixed(2)],
+      ['SALDO NETO', netBalance.toFixed(2)],
     ];
 
     const allRows = [
@@ -262,7 +263,7 @@ const reportService = {
       ...summaryBanner
     ];
 
-    const csv = allRows.map((row) => row.map(csvCell).join(',')).join('\r\n');
+    const csv = allRows.map((row) => row.map((val) => `"${cleanText(val)}"`).join(',')).join('\r\n');
     const filename = `reporte-ejecutivo-tec-ode-${new Date().toISOString().slice(0, 10)}.csv`;
     return { filename, csv: `\uFEFF${csv}` };
   },
