@@ -177,21 +177,31 @@ const reportsRepository = {
 
   /** Movimientos financieros para exportar CSV (rangos opcionales). */
   async financeMovementsForExport(companyId, { from, to } = {}) {
-    const [incomes, expenses] = await Promise.all([
+    const [incomes, expenses, purchases, sales] = await Promise.all([
       Income.find({
         companyId: oid(companyId),
         ...dateRange('date', from, to),
       })
-        .sort({ date: 1 })
+        .sort({ date: -1 })
         .lean(),
       Expense.find({
         companyId: oid(companyId),
         ...dateRange('date', from, to),
       })
-        .sort({ date: 1 })
+        .sort({ date: -1 })
+        .lean(),
+      PurchaseOrder.find({
+        companyId: oid(companyId),
+      })
+        .sort({ createdAt: -1 })
+        .lean(),
+      SalesOrder.find({
+        companyId: oid(companyId),
+      })
+        .sort({ createdAt: -1 })
         .lean(),
     ]);
-    return { incomes, expenses };
+    return { incomes, expenses, purchases, sales };
   },
 
   /** Cuentas de la empresa (código/nombre para el CSV y saldo agregado). */

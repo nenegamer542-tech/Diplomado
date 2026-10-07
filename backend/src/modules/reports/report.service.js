@@ -183,31 +183,36 @@ const reportService = {
     return { year, month: month || null, items, totals: { planned, executed, variance: round2(planned - executed) } };
   },
 
-  /** Exporta ingresos+gastos del periodo como CSV (RFC 4180, con BOM UTF-8). */
+  /** Exporta ingresos, gastos, compras y estimaciones del periodo como CSV (RFC 4180, con BOM UTF-8). */
   async financeExportCsv(companyId, range) {
-    const [{ incomes, expenses }, accounts] = await Promise.all([
+    const [{ incomes, expenses, purchases, sales }, accounts] = await Promise.all([
       reportsRepository.financeMovementsForExport(companyId, range),
       reportsRepository.accountsList(companyId),
     ]);
     const accountCode = new Map(accounts.map((a) => [String(a._id), a.code]));
 
-    const header = ['tipo', 'codigo', 'fecha', 'categoria', 'metodo', 'cuenta', 'importe', 'estado', 'descripcion'];
-    const toRow = (type, m) => [
-      type,
-      m.code,
-      m.date instanceof Date ? m.date.toISOString() : new Date(m.date).toISOString(),
-      m.category,
-      m.method,
-      accountCode.get(String(m.accountId)) || '',
-      m.amount,
-      m.status,
-      m.description || '',
-    ];
+    const header = ['TIPO', 'CODIGO', 'FECHA', 'CATEGORIA_O_DETALLE', 'METODO_O_ESTADO', 'CUENTA', 'IMPORTE', 'ESTADO', 'DESCRIPCION'];
+    const toRow = (type, m) => {
+      const dateVal = m.date || m.createdAt || new Date();
+      return [
+        type,
+        m.code || '—',
+        dateVal instanceof Date ? dateVal.toISOString().slice(0, 10) : new Date(dateVal).toISOString().slice(0, 10),
+        m.category || 'OBRA_GENERAL',
+        m.method || m.status || 'POSTED',
+        accountCode.get(String(m.accountId)) || 'TESORERIA',
+        m.amount || m.total || 0,
+        m.status || 'POSTED',
+        m.description || m.notes || 'Registro operativo de obra',
+      ];
+    };
 
     const rows = [
       header,
       ...incomes.map((m) => toRow('INGRESO', m)),
       ...expenses.map((m) => toRow('GASTO', m)),
+      ...purchases.map((m) => toRow('COMPRA_OBRA', m)),
+      ...sales.map((m) => toRow('ESTIMACION_OBRA', m)),
     ];
     const csv = rows.map((row) => row.map(csvCell).join(',')).join('\r\n');
     const filename = `movimientos-financieros-${new Date().toISOString().slice(0, 10)}.csv`;

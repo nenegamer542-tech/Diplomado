@@ -199,30 +199,93 @@ async function ensureDemoTenant(password) {
     console.log('[seed] Cliente demo DEMO-CLI creado.');
   }
 
-  // Cuentas financieras demo (FASE 5): el saldo sólo lo gestiona el servidor.
-  if (!(await FinanceAccount.findOne({ companyId: company._id, code: 'DEMO-CASH' }))) {
-    await FinanceAccount.create({
+  // Cuentas financieras demo (FASE 5)
+  let cashAccount = await FinanceAccount.findOne({ companyId: company._id, code: 'DEMO-CASH' });
+  if (!cashAccount) {
+    cashAccount = await FinanceAccount.create({
       companyId: company._id,
       code: 'DEMO-CASH',
-      name: 'Caja Chica',
+      name: 'Caja Chica Obra Principal',
       type: 'cash',
       currency: 'MXN',
-      balance: 0,
+      balance: 150000.0,
       status: 'active',
     });
     console.log('[seed] Cuenta demo DEMO-CASH creada.');
+  } else {
+    cashAccount.balance = 150000.0;
+    await cashAccount.save();
   }
-  if (!(await FinanceAccount.findOne({ companyId: company._id, code: 'DEMO-BANK' }))) {
-    await FinanceAccount.create({
+
+  let bankAccount = await FinanceAccount.findOne({ companyId: company._id, code: 'DEMO-BANK' });
+  if (!bankAccount) {
+    bankAccount = await FinanceAccount.create({
       companyId: company._id,
       code: 'DEMO-BANK',
-      name: 'Banco Demo',
+      name: 'BBVA Bancomer Tesorería Obra',
       type: 'bank',
       currency: 'MXN',
-      balance: 0,
+      balance: 1250000.0,
       status: 'active',
     });
     console.log('[seed] Cuenta demo DEMO-BANK creada.');
+  } else {
+    bankAccount.balance = 1250000.0;
+    await bankAccount.save();
+  }
+
+  // Movimientos Reales de Ingresos (Estimaciones)
+  if (!(await Income.findOne({ companyId: company._id, code: 'INC-001' }))) {
+    await Income.create({
+      companyId: company._id,
+      accountId: bankAccount._id,
+      code: 'INC-001',
+      date: new Date('2026-02-15'),
+      category: 'ESTIMACIONES',
+      method: 'transfer',
+      amount: 450000.0,
+      status: 'POSTED',
+      description: 'Anticipo de Obra Torre Residencial Coyoacán',
+    });
+    await Income.create({
+      companyId: company._id,
+      accountId: bankAccount._id,
+      code: 'INC-002',
+      date: new Date('2026-03-01'),
+      category: 'ESTIMACIONES',
+      method: 'transfer',
+      amount: 820000.0,
+      status: 'POSTED',
+      description: 'Estimación No. 1 Avance de Cimentación',
+    });
+    console.log('[seed] Ingresos reales registrados.');
+  }
+
+  // Movimientos Reales de Gastos (Compras y Nómina)
+  if (!(await Expense.findOne({ companyId: company._id, code: 'EXP-001' }))) {
+    await Expense.create({
+      companyId: company._id,
+      accountId: cashAccount._id,
+      code: 'EXP-001',
+      date: new Date('2026-02-20'),
+      category: 'MATERIALES',
+      method: 'cash',
+      amount: 45000.0,
+      status: 'POSTED',
+      description: 'Compra de 200 sacos de cemento y alambre',
+    });
+    await Expense.create({
+      companyId: company._id,
+      accountId: bankAccount._id,
+      code: 'EXP-002',
+      date: new Date('2026-03-05'),
+      category: 'MANO_DE_OBRA',
+      method: 'transfer',
+      amount: 125000.0,
+      status: 'POSTED',
+      description: 'Pago de nómina semanal a cuadrillas de colado',
+    });
+    console.log('[seed] Gastos reales registrados.');
   }
 
   // Catálogo FASE 6: producto terminado, BOM, empleado y lead demo.
